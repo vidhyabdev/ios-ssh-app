@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct SSHHost: Identifiable {
+struct SSHHost: Identifiable, Codable {
     let id = UUID()
     let hostName: String
     let hostname: String
