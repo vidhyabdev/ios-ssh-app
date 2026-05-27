@@ -10,6 +10,7 @@ import SwiftUI
 struct TerminalView: View {
     let host: SSHHost
     @ObservedObject var hostManager: HostManager
+    @State private var selectedBackend: SSHBackend = .default
     
     @State private var commandInput = ""
     @State private var terminalOutput = [String]()
@@ -24,7 +25,11 @@ struct TerminalView: View {
     
     // SSH Service
     @State private var sshService: SSHService = MockSSHService()
-    @State private var selectedBackend: SSHBackend = .default
+    
+    init(host: SSHHost, hostManager: HostManager) {
+        self.host = host
+        self.hostManager = hostManager
+    }
     
     enum ConnectionState {
         case disconnected
