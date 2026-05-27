@@ -65,6 +65,26 @@ class MockSSHService: SSHService {
         }
     }
     
+    func sendCommandStreaming(_ command: String, onOutput: @escaping (String) -> Void) async throws {
+        guard isConnected else {
+            throw SSHError.notConnected
+        }
+        
+        // Simulate streaming output for the command
+        let mockOutputLines = [
+            "Starting command: \(command)",
+            "Processing...",
+            "Executing...",
+            "Command completed successfully"
+        ]
+        
+        for line in mockOutputLines {
+            // Simulate delay between output lines
+            try await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
+            onOutput(line)
+        }
+    }
+    
     func setHost(_ host: SSHHost) {
         // Mock service doesn't use host information
     }
