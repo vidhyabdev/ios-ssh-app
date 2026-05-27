@@ -1,29 +1,4 @@
-//
-//  SSHService.swift
-//  ios-ssh-app
-//
-//  Created by [Your Name] on [Date].
-//
-
 import Foundation
-
-/// Protocol defining the interface for SSH connections
-protocol SSHService {
-    /// Connect to the SSH host
-    func connect() async throws
-    
-    /// Disconnect from the SSH host
-    func disconnect()
-    
-    /// Send a command to the SSH host
-    func sendCommand(_ command: String) async throws -> String
-    
-    /// Set the host for this SSH service instance
-    func setHost(_ host: SSHHost)
-    
-    /// Send a command to the SSH host with streaming output
-    func sendCommandStreaming(_ command: String, onOutput: @escaping (String) -> Void) async throws
-}
 
 /// Mock implementation of SSHService for testing and development
 class MockSSHService: SSHService {
@@ -65,25 +40,34 @@ class MockSSHService: SSHService {
         }
     }
     
+    func sendCommandStreaming(_ command: String, onOutput: @escaping (String) -> Void) async throws {
+        guard isConnected else {
+            throw SSHError.notConnected
+        }
+        
+        // Simulate command execution delay
+        try await Task.sleep(nanoseconds: 200_000_000) // 0.2 seconds
+        
+        // Return mock responses based on command
+        switch command.lowercased() {
+        case "ls":
+            onOutput("Documents  Downloads  Pictures  Videos")
+        case "pwd":
+            onOutput("/home/user")
+        case "whoami":
+            onOutput("user")
+        case "date":
+            onOutput(Date().description)
+        case "clear":
+            // No output for clear command
+            break
+        default:
+            // For other commands, return a generic response
+            onOutput("Command '\(command)' executed successfully")
+        }
+    }
+    
     func setHost(_ host: SSHHost) {
         // Mock service doesn't use host information
-    }
-}
-
-/// Error types for SSH operations
-enum SSHError: Error, LocalizedError {
-    case notConnected
-    case connectionFailed
-    case commandExecutionFailed
-    
-    var errorDescription: String? {
-        switch self {
-        case .notConnected:
-            return "Not connected to SSH host"
-        case .connectionFailed:
-            return "Failed to connect to SSH host"
-        case .commandExecutionFailed:
-            return "Failed to execute command on SSH host"
-        }
     }
 }

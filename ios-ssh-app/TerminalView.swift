@@ -18,6 +18,7 @@ struct TerminalView: View {
     @State private var showHistory = false
     @State private var commandHistory = [String]()
     @State private var showSettings = false
+    @State private var isCommandRunning = false
     
     // Terminal preferences
     @State private var selectedTheme: TerminalTheme = .dark
@@ -109,21 +110,29 @@ struct TerminalView: View {
                 TextField("Enter command...", text: $commandInput)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
                     .font(getFont(for: selectedFontSize, size: 14))
-                    .disabled(connectionState != .connected)
+                    .disabled(connectionState != .connected || isCommandRunning)
                 
                 Button("History") {
                     showHistory = true
                 }
                 .buttonStyle(.borderedProminent)
                 .font(getFont(for: selectedFontSize, size: 14))
-                .disabled(connectionState != .connected)
+                .disabled(connectionState != .connected || isCommandRunning)
                 
-                Button("Send") {
-                    sendCommand()
+                if isCommandRunning {
+                    Button("Stop") {
+                        stopCommand()
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .font(getFont(for: selectedFontSize, size: 14))
+                } else {
+                    Button("Send") {
+                        sendCommand()
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .font(getFont(for: selectedFontSize, size: 14))
+                    .disabled(commandInput.isEmpty || connectionState != .connected)
                 }
-                .buttonStyle(.borderedProminent)
-                .font(getFont(for: selectedFontSize, size: 14))
-                .disabled(commandInput.isEmpty || connectionState != .connected)
             }
             .padding()
             
@@ -229,7 +238,7 @@ private func disconnect() {
         terminalOutput.removeAll()
     }
     
-private func sendCommand() {
+    private func sendCommand() {
         Task {
             // Add the command to the terminal output
             let command = commandInput.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -241,19 +250,48 @@ private func sendCommand() {
                     commandHistory.append(command)
                 }
                 
-                do {
-                    let response = try await sshService.sendCommand(command)
-                    if !response.isEmpty {
-                        terminalOutput.append(response)
+                // Check if the service supports streaming
+                if let streamingService = sshService as? RealSSHService {
+                    // For streaming services, we'll handle output incrementally
+                    isCommandRunning = true
+                    do {
+                        try await streamingService.sendCommandStreaming(command) { output in
+                            DispatchQueue.main.async {
+                                if !output.isEmpty {
+                                    terminalOutput.append(output)
+                                }
+                            }
+                        }
+                    } catch {
+                        DispatchQueue.main.async {
+                            terminalOutput.append("Error: \(error.localizedDescription)")
+                        }
                     }
-                } catch {
-                    terminalOutput.append("Error: \(error.localizedDescription)")
+                    isCommandRunning = false
+                } else {
+                    // For non-streaming services (like MockSSHService), use existing behavior
+                    do {
+                        let response = try await sshService.sendCommand(command)
+                        if !response.isEmpty {
+                            terminalOutput.append(response)
+                        }
+                    } catch {
+                        terminalOutput.append("Error: \(error.localizedDescription)")
+                    }
                 }
                 
                 // Clear input
                 commandInput = ""
             }
         }
+    }
+    
+    private func stopCommand() {
+        // Cancel the ongoing command if there is one
+        if let streamingService = sshService as? RealSSHService {
+            streamingService.cancelCommand()
+        }
+        isCommandRunning = false
     }
     
 // Removed the generateFakeResponse function as it's now handled by MockSSHService

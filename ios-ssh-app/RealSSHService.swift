@@ -12,6 +12,8 @@ class RealSSHService: SSHService {
     private var isConnected = false
     private var currentHost: SSHHost?
     private var session: AnyObject? // Placeholder for actual SSH session
+    private var isExecutingCommand = false
+    private var cancellation: Task<Void, Never>? = nil
     
     func connect() async throws {
         // In a real implementation, this would use Citadel or another SSH library
@@ -37,6 +39,9 @@ class RealSSHService: SSHService {
     func disconnect() {
         // Close SSH connection
         isConnected = false
+        // Cancel any ongoing command
+        cancellation?.cancel()
+        isExecutingCommand = false
     }
     
     func sendCommand(_ command: String) async throws -> String {
@@ -69,6 +74,73 @@ class RealSSHService: SSHService {
             // This shouldn't happen due to the guard clause above, but keeping for safety
             throw SSHError.commandExecutionFailed
         }
+    }
+    
+    func cancelCommand() {
+        cancellation?.cancel()
+        isExecutingCommand = false
+    }
+    
+    func sendCommandStreaming(_ command: String, onOutput: @escaping (String) -> Void) async throws {
+        guard isConnected else {
+            throw SSHError.notConnected
+        }
+        
+        // Cancel any previous command
+        cancellation?.cancel()
+        
+        // Mark that we're executing a command
+        isExecutingCommand = true
+        
+        // Create a new cancellation task
+        cancellation = Task {
+            // Simulate streaming output for long-running commands
+            // In a real implementation, this would be replaced with actual SSH streaming
+            let streamingCommands = ["ping", "top", "tail -f"]
+            
+            if streamingCommands.contains(command.lowercased()) {
+                // Simulate streaming output for commands that would normally stream
+                let outputs = [
+                    "Command started: \(command)",
+                    "Streaming output for \(command)...",
+                    "Line 1 of output",
+                    "Line 2 of output",
+                    "Line 3 of output",
+                    "Line 4 of output",
+                    "Line 5 of output"
+                ]
+                
+                for output in outputs {
+                    // Check if task was cancelled
+                    if Task.isCancelled {
+                        onOutput("Command cancelled")
+                        isExecutingCommand = false
+                        return
+                    }
+                    
+                    // Simulate delay between output lines
+                    try await Task.sleep(nanoseconds: 200_000_000) // 0.2 seconds
+                    
+                    // Send output
+                    onOutput(output)
+                }
+                
+                // Send completion message
+                onOutput("Command completed")
+            } else {
+                // For non-streaming commands, simulate normal execution
+                try await Task.sleep(nanoseconds: 500_000_000) // 0.5 second delay
+                
+                // Return simulated response
+                let response = "Output for command: \(command)"
+                onOutput(response)
+            }
+            
+            isExecutingCommand = false
+        }
+        
+        // Wait for the task to complete
+        try await cancellation!.value
     }
     
     func setHost(_ host: SSHHost) {
