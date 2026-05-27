@@ -41,6 +41,9 @@ struct SSHHostListView: View {
                 .padding(.vertical, 4)
             }
             .navigationTitle("SSH Hosts")
+            .navigationBarItems(trailing: NavigationLink(destination: AddHostView()) {
+                Image(systemName: "plus")
+            })
         }
     }
 }
