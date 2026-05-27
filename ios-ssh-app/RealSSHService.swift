@@ -6,7 +6,7 @@
 //
 
 import Foundation
-import Citadel
+// import Citadel (dependency not yet added to project)
 
 /// Real implementation of SSHService using a Swift-compatible SSH library
 class RealSSHService: SSHService {
