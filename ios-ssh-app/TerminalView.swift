@@ -13,19 +13,52 @@ struct TerminalView: View {
     
     @State private var commandInput = ""
     @State private var terminalOutput = [String]()
+    @State private var connectionState: ConnectionState = .disconnected
+    
+    enum ConnectionState {
+        case disconnected
+        case connecting
+        case connected
+    }
     
     var body: some View {
         VStack(spacing: 0) {
-            // Terminal header with host name
+            // Terminal header with host name and connection status
             HStack {
                 Text(host.hostName)
                     .font(.headline)
                     .fontWeight(.bold)
                 Spacer()
+                Text(connectionState.rawValue.capitalized)
+                    .font(.caption)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(connectionState == .connected ? Color.green : (connectionState == .connecting ? Color.orange : Color.red))
+                    .foregroundColor(.white)
+                    .cornerRadius(4)
             }
             .padding()
             .background(Color.black)
             .foregroundColor(.white)
+            
+            // Connection controls
+            if connectionState == .disconnected {
+                HStack {
+                    Button("Connect") {
+                        connect()
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .padding()
+                }
+            } else if connectionState == .connected {
+                HStack {
+                    Button("Disconnect") {
+                        disconnect()
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .padding()
+                }
+            }
             
             // Scrollable terminal output area
             ScrollViewReader { proxy in
@@ -51,16 +84,32 @@ struct TerminalView: View {
             HStack {
                 TextField("Enter command...", text: $commandInput)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
+                    .disabled(connectionState != .connected)
                 
                 Button("Send") {
                     sendCommand()
                 }
                 .buttonStyle(.borderedProminent)
-                .disabled(commandInput.isEmpty)
+                .disabled(commandInput.isEmpty || connectionState != .connected)
             }
             .padding()
         }
         .navigationTitle("Terminal")
+    }
+    
+    private func connect() {
+        connectionState = .connecting
+        // Simulate connecting process
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+            connectionState = .connected
+            // Add initial connection message
+            terminalOutput.append("Connected to \(host.hostName)")
+        }
+    }
+    
+    private func disconnect() {
+        connectionState = .disconnected
+        terminalOutput.removeAll()
     }
     
     private func sendCommand() {
