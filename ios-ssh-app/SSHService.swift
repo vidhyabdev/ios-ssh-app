@@ -71,6 +71,7 @@ class MockSSHService: SSHService {
 enum SSHError: Error, LocalizedError {
     case notConnected
     case connectionFailed
+    case commandExecutionFailed
     
     var errorDescription: String? {
         switch self {
@@ -78,6 +79,8 @@ enum SSHError: Error, LocalizedError {
             return "Not connected to SSH host"
         case .connectionFailed:
             return "Failed to connect to SSH host"
+        case .commandExecutionFailed:
+            return "Failed to execute command on SSH host"
         }
     }
 }
