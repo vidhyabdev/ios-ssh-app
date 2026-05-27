@@ -11,7 +11,7 @@ struct TerminalSettingsView: View {
     @Binding var isPresented: Bool
     @Binding var selectedTheme: TerminalTheme
     @Binding var selectedFontSize: TerminalFontSize
-    @State private var selectedBackend: SSHBackend = .default
+    @Binding var selectedBackend: SSHBackend
     
     var body: some View {
         NavigationView {

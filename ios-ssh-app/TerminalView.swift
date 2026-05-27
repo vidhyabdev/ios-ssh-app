@@ -151,11 +151,12 @@ struct TerminalView: View {
             loadPreferences()
             loadBackendPreference()
         }
-        .sheet(isPresented: $showSettings) {
+.sheet(isPresented: $showSettings) {
             TerminalSettingsView(
                 isPresented: $showSettings,
                 selectedTheme: $selectedTheme,
-                selectedFontSize: $selectedFontSize
+                selectedFontSize: $selectedFontSize,
+                selectedBackend: $selectedBackend
             )
         }
     }
