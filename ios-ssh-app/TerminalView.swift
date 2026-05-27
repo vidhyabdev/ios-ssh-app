@@ -25,11 +25,16 @@ struct TerminalView: View {
     
     var body: some View {
         VStack(spacing: 0) {
-            // Terminal header with host name and connection status
+            // Session banner with host information
             HStack {
-                Text(host.hostName)
-                    .font(.headline)
-                    .fontWeight(.bold)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("\(host.username)@\(host.hostname):\(host.port)")
+                        .font(.system(size: 12, weight: .semibold, design: .monospaced))
+                        .foregroundColor(.white)
+                    Text(host.hostName)
+                        .font(.system(size: 10, design: .monospaced))
+                        .foregroundColor(.gray)
+                }
                 Spacer()
                 Text(getConnectionStateText())
                     .font(.caption)
@@ -39,9 +44,9 @@ struct TerminalView: View {
                     .foregroundColor(.white)
                     .cornerRadius(4)
             }
-            .padding()
+            .padding(.horizontal)
+            .padding(.vertical, 4)
             .background(Color.black)
-            .foregroundColor(.white)
             
             // Connection controls
             if connectionState == .disconnected {
@@ -183,7 +188,7 @@ struct TerminalView: View {
         }
     }
     
-    private func generateFakeResponse(for command: String) -> String {
+private func generateFakeResponse(for command: String) -> String {
         // Simple mock responses for common commands
         switch command.lowercased() {
         case "ls":
@@ -197,8 +202,9 @@ struct TerminalView: View {
         case "echo":
             return command.dropFirst(5).trimmingCharacters(in: .whitespacesAndNewlines)
         case "clear":
+            // Clear terminal output but keep connection state and command history
             terminalOutput.removeAll()
-            return ""
+            return "" // Don't show anything in the output for clear command
         case "help":
             return "Available commands: ls, pwd, whoami, date, echo, clear, help"
         default:
