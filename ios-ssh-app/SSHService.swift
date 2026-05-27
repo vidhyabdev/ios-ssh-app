@@ -17,6 +17,9 @@ protocol SSHService {
     
     /// Send a command to the SSH host
     func sendCommand(_ command: String) async throws -> String
+    
+    /// Set the host for this SSH service instance
+    func setHost(_ host: SSHHost)
 }
 
 /// Mock implementation of SSHService for testing and development
@@ -57,6 +60,10 @@ class MockSSHService: SSHService {
             // For other commands, return a generic response
             return "Command '\(command)' executed successfully"
         }
+    }
+    
+    func setHost(_ host: SSHHost) {
+        // Mock service doesn't use host information
     }
 }
 

@@ -55,6 +55,11 @@ class RealSSHService: SSHService {
         isConnected = false
     }
     
+    /// Sets the host for this SSH service instance
+    func setHost(_ host: SSHHost) {
+        self.currentHost = host
+    }
+    
     func sendCommand(_ command: String) async throws -> String {
         guard isConnected else {
             throw SSHError.notConnected
@@ -67,7 +72,7 @@ class RealSSHService: SSHService {
             return output ?? ""
         } catch {
             // Handle command execution error
-            throw error
+            throw SSHError.connectionFailed
         }
     }
 }

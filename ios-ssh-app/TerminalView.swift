@@ -199,12 +199,18 @@ struct TerminalView: View {
         }
     }
     
-private func connect() {
+    private func connect() {
         Task {
             connectionState = .connecting
             do {
                 // Recreate SSH service with selected backend
                 sshService = selectedBackend.createSSHService()
+                
+                // For RealSSHService, we need to set the host
+                if let realSSHService = sshService as? RealSSHService {
+                    realSSHService.setHost(host)
+                }
+                
                 try await sshService.connect()
                 connectionState = .connected
                 // Add initial connection message
