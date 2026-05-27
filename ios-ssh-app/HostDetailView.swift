@@ -67,13 +67,12 @@ struct HostDetailView: View {
                         .buttonStyle(.borderedProminent)
                 }
                 
-                Button("Connect") {
-                    // Placeholder for connection logic
+                NavigationLink(destination: TerminalView(host: host, hostManager: hostManager)) {
+                    Text("Connect")
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .buttonStyle(.borderedProminent)
                 }
-                .disabled(true)
-                .buttonStyle(.borderedProminent)
-                .frame(maxWidth: .infinity)
-                .padding()
             }
             .padding()
         }
