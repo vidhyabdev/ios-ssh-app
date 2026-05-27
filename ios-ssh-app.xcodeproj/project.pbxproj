@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		73CB8FFC2FC783FD00E16A30 /* Citadel in Frameworks */ = {isa = PBXBuildFile; productRef = 73CB8FFB2FC783FD00E16A30 /* Citadel */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		73961AAB2FC7694800B0363E /* ios-ssh-app.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "ios-ssh-app.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -23,6 +27,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				73CB8FFC2FC783FD00E16A30 /* Citadel in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -65,6 +70,7 @@
 			);
 			name = "ios-ssh-app";
 			packageProductDependencies = (
+				73CB8FFB2FC783FD00E16A30 /* Citadel */,
 			);
 			productName = "ios-ssh-app";
 			productReference = 73961AAB2FC7694800B0363E /* ios-ssh-app.app */;
@@ -94,6 +100,9 @@
 			);
 			mainGroup = 73961AA22FC7694800B0363E;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				73CB8FFA2FC783FD00E16A30 /* XCRemoteSwiftPackageReference "Citadel" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 73961AAC2FC7694800B0363E /* Products */;
 			projectDirPath = "";
@@ -332,6 +341,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		73CB8FFA2FC783FD00E16A30 /* XCRemoteSwiftPackageReference "Citadel" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/orlandos-nl/Citadel";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.12.1;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		73CB8FFB2FC783FD00E16A30 /* Citadel */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 73CB8FFA2FC783FD00E16A30 /* XCRemoteSwiftPackageReference "Citadel" */;
+			productName = Citadel;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 73961AA32FC7694800B0363E /* Project object */;
 }

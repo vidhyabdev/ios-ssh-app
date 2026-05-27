@@ -1,0 +1,4 @@
+/Users/vbalasubramaniyan/Desktop/Code/ios-ssh-app/ios-ssh-app/RealSSHService.swift:9:8: error: unable to resolve module dependency: 'Citadel'
+/Users/vbalasubramaniyan/Desktop/Code/ios-ssh-app/ios-ssh-app/RealSSHService.swift:9:8: error: Unable to resolve module dependency: 'Citadel'
+** BUILD FAILED **
+The following build commands failed:
