@@ -9,6 +9,7 @@ import SwiftUI
 
 struct HostDetailView: View {
     let host: SSHHost
+    @StateObject private var hostManager = HostManager()
     
     var body: some View {
         ScrollView {
@@ -53,6 +54,13 @@ struct HostDetailView: View {
                 .padding()
                 .background(Color.gray.opacity(0.1))
                 .cornerRadius(10)
+                
+                NavigationLink(destination: EditHostView(hostManager: hostManager, hostToEdit: host)) {
+                    Text("Edit")
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .buttonStyle(.borderedProminent)
+                }
                 
                 Button("Connect") {
                     // Placeholder for connection logic
