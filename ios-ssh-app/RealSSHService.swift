@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import Citadel
 
 /// Real implementation of SSHService using a Swift-compatible SSH library
 class RealSSHService: SSHService {
@@ -16,23 +17,24 @@ class RealSSHService: SSHService {
     private var sshSession: AnyObject?
     
     func connect() async throws {
-        // In a real implementation, this would establish an actual SSH connection
-        // For now, we'll simulate the connection process
-        
-        // Simulate connection delay
-        try await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
-        
-        // In a real implementation, we would:
+        // TODO: Replace with actual Citadel implementation
+        // In a real implementation, this would establish an actual SSH connection using Citadel
         // 1. Validate host credentials
-        // 2. Establish SSH connection using a library like SwiftySSH
+        // 2. Establish SSH connection using Citadel
         // 3. Handle authentication (password or key-based)
         // 4. Set up session management
+        
+        // For now, we'll simulate the connection process
+        // Simulate connection delay
+        try await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
         
         isConnected = true
     }
     
     func disconnect() {
-        // In a real implementation, this would close the SSH connection
+        // TODO: Replace with actual Citadel implementation
+        // In a real implementation, this would close the SSH connection using Citadel
+        
         // For now, we'll just mark as disconnected
         isConnected = false
         sshSession = nil
@@ -43,8 +45,9 @@ class RealSSHService: SSHService {
             throw SSHError.notConnected
         }
         
+        // TODO: Replace with actual Citadel implementation
         // In a real implementation, this would:
-        // 1. Send the command over the established SSH connection
+        // 1. Send the command over the established SSH connection using Citadel
         // 2. Receive and return the response
         // 3. Handle timeouts and errors appropriately
         
