@@ -22,7 +22,7 @@ class HostManager: ObservableObject {
         saveHosts()
     }
     
-    private func saveHosts() {
+    public func saveHosts() {
         if let encoded = try? JSONEncoder().encode(hosts) {
             UserDefaults.standard.set(encoded, forKey: userDefaultsKey)
         }
