@@ -22,6 +22,9 @@ struct TerminalView: View {
     @State private var selectedTheme: TerminalTheme = .dark
     @State private var selectedFontSize: TerminalFontSize = .medium
     
+    // SSH Service
+    @State private var sshService: SSHService = MockSSHService()
+    
     enum ConnectionState {
         case disconnected
         case connecting
@@ -185,64 +188,56 @@ struct TerminalView: View {
         }
     }
     
-    private func connect() {
-        connectionState = .connecting
-        // Simulate connecting process
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-            connectionState = .connected
-            // Add initial connection message
-            terminalOutput.append("Connected to \(host.hostName)")
+private func connect() {
+        Task {
+            connectionState = .connecting
+            do {
+                try await sshService.connect()
+                connectionState = .connected
+                // Add initial connection message
+                terminalOutput.append("Connected to \(host.hostName)")
+            } catch {
+                // Handle connection error
+                connectionState = .disconnected
+                terminalOutput.append("Connection failed: \(error.localizedDescription)")
+            }
         }
     }
     
-    private func disconnect() {
+private func disconnect() {
+        sshService.disconnect()
         connectionState = .disconnected
         terminalOutput.removeAll()
     }
     
-    private func sendCommand() {
-        // Add the command to the terminal output
-        let command = commandInput.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !command.isEmpty {
-            terminalOutput.append("$ \(command)")
-            
-            // Add to command history
-            if !commandHistory.contains(command) {
-                commandHistory.append(command)
+private func sendCommand() {
+        Task {
+            // Add the command to the terminal output
+            let command = commandInput.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !command.isEmpty {
+                terminalOutput.append("$ \(command)")
+                
+                // Add to command history
+                if !commandHistory.contains(command) {
+                    commandHistory.append(command)
+                }
+                
+                do {
+                    let response = try await sshService.sendCommand(command)
+                    if !response.isEmpty {
+                        terminalOutput.append(response)
+                    }
+                } catch {
+                    terminalOutput.append("Error: \(error.localizedDescription)")
+                }
+                
+                // Clear input
+                commandInput = ""
             }
-            
-            // Add a fake response
-            let fakeResponse = generateFakeResponse(for: command)
-            terminalOutput.append(fakeResponse)
-            
-            // Clear input
-            commandInput = ""
         }
     }
     
-    private func generateFakeResponse(for command: String) -> String {
-        // Simple mock responses for common commands
-        switch command.lowercased() {
-        case "ls":
-            return "Documents  Downloads  Music  Pictures  Videos"
-        case "pwd":
-            return "/home/user"
-        case "whoami":
-            return "user"
-        case "date":
-            return Date().description
-        case "echo":
-            return command.dropFirst(5).trimmingCharacters(in: .whitespacesAndNewlines)
-        case "clear":
-            // Clear terminal output but keep connection state and command history
-            terminalOutput.removeAll()
-            return "" // Don't show anything in the output for clear command
-        case "help":
-            return "Available commands: ls, pwd, whoami, date, echo, clear, help"
-        default:
-            return "Command not found: \(command)"
-        }
-    }
+// Removed the generateFakeResponse function as it's now handled by MockSSHService
     
     // MARK: - Preferences Management
     private func loadPreferences() {
