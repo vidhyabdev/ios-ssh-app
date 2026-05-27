@@ -255,15 +255,22 @@ private func disconnect() {
                      // For streaming services, we'll handle output incrementally
                      isCommandRunning = true
                      // Start the streaming command asynchronously
-                     streamingService.sendCommandStreaming(command) { output in
-                         DispatchQueue.main.async {
-                             if !output.isEmpty {
-                                 terminalOutput.append(output)
+                     do {
+                         try await streamingService.sendCommandStreaming(command) { output in
+                             DispatchQueue.main.async {
+                                 if !output.isEmpty {
+                                     terminalOutput.append(output)
+                                 }
                              }
                          }
+                         // Command finished, set running flag to false
+                         isCommandRunning = false
+                     } catch {
+                         DispatchQueue.main.async {
+                             terminalOutput.append("Error: \(error.localizedDescription)")
+                             isCommandRunning = false
+                         }
                      }
-                     // Note: We don't await the streaming command because it runs asynchronously
-                     // and we want to allow the stop button to work during execution
                  } else {
                      // For non-streaming services (like MockSSHService), use existing behavior
                      do {
