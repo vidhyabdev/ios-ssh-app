@@ -29,11 +29,11 @@ struct TerminalView: View {
                     .font(.headline)
                     .fontWeight(.bold)
                 Spacer()
-                Text(connectionState.rawValue.capitalized)
+                Text(getConnectionStateText())
                     .font(.caption)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
-                    .background(connectionState == .connected ? Color.green : (connectionState == .connecting ? Color.orange : Color.red))
+                    .background(getConnectionStateColor())
                     .foregroundColor(.white)
                     .cornerRadius(4)
             }
@@ -95,6 +95,28 @@ struct TerminalView: View {
             .padding()
         }
         .navigationTitle("Terminal")
+    }
+    
+    private func getConnectionStateText() -> String {
+        switch connectionState {
+        case .disconnected:
+            return "Disconnected"
+        case .connecting:
+            return "Connecting"
+        case .connected:
+            return "Connected"
+        }
+    }
+    
+    private func getConnectionStateColor() -> Color {
+        switch connectionState {
+        case .disconnected:
+            return Color.red
+        case .connecting:
+            return Color.orange
+        case .connected:
+            return Color.green
+        }
     }
     
     private func connect() {
