@@ -24,6 +24,7 @@ struct TerminalView: View {
     
     // SSH Service
     @State private var sshService: SSHService = MockSSHService()
+    @State private var selectedBackend: SSHBackend = .default
     
     enum ConnectionState {
         case disconnected
@@ -33,7 +34,7 @@ struct TerminalView: View {
     
     var body: some View {
         VStack(spacing: 0) {
-            // Session banner with host information
+// Session banner with host information
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("\(host.username)@\(host.hostname):\(host.port)")
@@ -42,6 +43,9 @@ struct TerminalView: View {
                     Text(host.hostName)
                         .font(getFont(for: selectedFontSize, size: 10))
                         .foregroundColor(selectedTheme == .dark ? .gray : .secondary)
+                    Text("Backend: \(selectedBackend.displayName)")
+                        .font(getFont(for: selectedFontSize, size: 10))
+                        .foregroundColor(selectedTheme == .dark ? .blue : .primary)
                 }
                 Spacer()
                 Text(getConnectionStateText())
@@ -143,8 +147,9 @@ struct TerminalView: View {
         .navigationBarItems(trailing: Button("Settings") {
             showSettings = true
         })
-        .onAppear {
+.onAppear {
             loadPreferences()
+            loadBackendPreference()
         }
         .sheet(isPresented: $showSettings) {
             TerminalSettingsView(
@@ -192,10 +197,12 @@ private func connect() {
         Task {
             connectionState = .connecting
             do {
+                // Recreate SSH service with selected backend
+                sshService = selectedBackend.createSSHService()
                 try await sshService.connect()
                 connectionState = .connected
                 // Add initial connection message
-                terminalOutput.append("Connected to \(host.hostName)")
+                terminalOutput.append("Connected to \(host.hostName) using \(selectedBackend.displayName)")
             } catch {
                 // Handle connection error
                 connectionState = .disconnected
@@ -252,9 +259,16 @@ private func sendCommand() {
         }
     }
     
-    private func savePreferences() {
+private func savePreferences() {
         UserDefaults.standard.set(selectedTheme.rawValue, forKey: "TerminalTheme")
         UserDefaults.standard.set(selectedFontSize.rawValue, forKey: "TerminalFontSize")
+    }
+    
+    private func loadBackendPreference() {
+        // Load backend preference
+        if let savedBackend = UserDefaults.standard.string(forKey: "SelectedSSHBackend") {
+            selectedBackend = SSHBackend(rawValue: savedBackend) ?? .default
+        }
     }
 }
 

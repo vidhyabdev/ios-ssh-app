@@ -11,6 +11,7 @@ struct TerminalSettingsView: View {
     @Binding var isPresented: Bool
     @Binding var selectedTheme: TerminalTheme
     @Binding var selectedFontSize: TerminalFontSize
+    @State private var selectedBackend: SSHBackend = .default
     
     var body: some View {
         NavigationView {
@@ -28,6 +29,14 @@ struct TerminalSettingsView: View {
                         }
                     }
                 }
+                
+                Section(header: Text("SSH Backend")) {
+                    Picker("Backend", selection: $selectedBackend) {
+                        ForEach(SSHBackend.allCases, id: \.self) { backend in
+                            Text(backend.displayName).tag(backend)
+                        }
+                    }
+                }
             }
             .navigationTitle("Terminal Settings")
             .navigationBarItems(
@@ -38,6 +47,7 @@ struct TerminalSettingsView: View {
                     // Save preferences when saving
                     UserDefaults.standard.set(selectedTheme.rawValue, forKey: "TerminalTheme")
                     UserDefaults.standard.set(selectedFontSize.rawValue, forKey: "TerminalFontSize")
+                    UserDefaults.standard.set(selectedBackend.rawValue, forKey: "SelectedSSHBackend")
                     isPresented = false
                 }
             )
