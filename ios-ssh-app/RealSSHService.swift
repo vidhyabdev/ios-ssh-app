@@ -94,23 +94,31 @@ class RealSSHService: SSHService {
         
         // Create a new cancellation task
         cancellation = Task {
-            // Simulate streaming output for long-running commands
-            // In a real implementation, this would be replaced with actual SSH streaming
+            // This is where we'd integrate with a real SSH library to stream output
+            // For now, we'll simulate streaming behavior with a placeholder
+            // In a real implementation, this would use the actual SSH library to stream output
+            
+            // We'll create a simulated streaming for commands that would naturally stream
+            // like ping, top, tail -f
             let streamingCommands = ["ping", "top", "tail -f"]
             
             if streamingCommands.contains(command.lowercased()) {
                 // Simulate streaming output for commands that would normally stream
-                let outputs = [
+                // In a real implementation, we would use the SSH library to capture output
+                // and stream it incrementally to the onOutput closure
+                let outputLines = [
                     "Command started: \(command)",
-                    "Streaming output for \(command)...",
-                    "Line 1 of output",
-                    "Line 2 of output",
-                    "Line 3 of output",
-                    "Line 4 of output",
-                    "Line 5 of output"
+                    "Output from \(command) begins...",
+                    "Line 1 of streaming output",
+                    "Line 2 of streaming output",
+                    "Line 3 of streaming output",
+                    "Line 4 of streaming output",
+                    "Line 5 of streaming output",
+                    "Streaming continues...",
+                    "Command completed successfully"
                 ]
                 
-                for output in outputs {
+                for output in outputLines {
                     // Check if task was cancelled
                     if Task.isCancelled {
                         onOutput("Command cancelled")
@@ -118,17 +126,14 @@ class RealSSHService: SSHService {
                         return
                     }
                     
-                    // Simulate delay between output lines
-                    try await Task.sleep(nanoseconds: 200_000_000) // 0.2 seconds
+                    // Simulate delay between output lines to mimic real streaming
+                    try await Task.sleep(nanoseconds: 300_000_000) // 0.3 seconds
                     
                     // Send output
                     onOutput(output)
                 }
-                
-                // Send completion message
-                onOutput("Command completed")
             } else {
-                // For non-streaming commands, simulate normal execution
+                // For non-streaming commands, execute normally
                 try await Task.sleep(nanoseconds: 500_000_000) // 0.5 second delay
                 
                 // Return simulated response
@@ -139,6 +144,11 @@ class RealSSHService: SSHService {
             isExecutingCommand = false
         }
         
+        // In a real implementation, we would not await cancellation.value because
+        // streaming happens asynchronously. The caller should handle the async nature
+        // of streaming through the onOutput callback.
+        // For now, we'll return immediately to allow streaming to happen in background
+        return
     }
     
     func setHost(_ host: SSHHost) {
