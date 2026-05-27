@@ -16,6 +16,11 @@ struct TerminalView: View {
     @State private var connectionState: ConnectionState = .disconnected
     @State private var showHistory = false
     @State private var commandHistory = [String]()
+    @State private var showSettings = false
+    
+    // Terminal preferences
+    @State private var selectedTheme: TerminalTheme = .dark
+    @State private var selectedFontSize: TerminalFontSize = .medium
     
     enum ConnectionState {
         case disconnected
@@ -29,15 +34,15 @@ struct TerminalView: View {
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("\(host.username)@\(host.hostname):\(host.port)")
-                        .font(.system(size: 12, weight: .semibold, design: .monospaced))
-                        .foregroundColor(.white)
+                        .font(getFont(for: selectedFontSize, size: 12))
+                        .foregroundColor(selectedTheme == .dark ? .white : .black)
                     Text(host.hostName)
-                        .font(.system(size: 10, design: .monospaced))
-                        .foregroundColor(.gray)
+                        .font(getFont(for: selectedFontSize, size: 10))
+                        .foregroundColor(selectedTheme == .dark ? .gray : .secondary)
                 }
                 Spacer()
                 Text(getConnectionStateText())
-                    .font(.caption)
+                    .font(getFont(for: selectedFontSize, size: 10))
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
                     .background(getConnectionStateColor())
@@ -46,7 +51,7 @@ struct TerminalView: View {
             }
             .padding(.horizontal)
             .padding(.vertical, 4)
-            .background(Color.black)
+            .background(selectedTheme == .dark ? Color.black : Color.gray)
             
             // Connection controls
             if connectionState == .disconnected {
@@ -73,8 +78,8 @@ struct TerminalView: View {
                     VStack(alignment: .leading, spacing: 4) {
                         ForEach(terminalOutput, id: \.self) { line in
                             Text(line)
-                                .font(.system(.body, design: .monospaced))
-                                .foregroundColor(.green)
+                                .font(getFont(for: selectedFontSize, size: 14))
+                                .foregroundColor(selectedTheme == .dark ? .green : .primary)
                         }
                     }
                     .padding()
@@ -91,18 +96,21 @@ struct TerminalView: View {
             HStack {
                 TextField("Enter command...", text: $commandInput)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
+                    .font(getFont(for: selectedFontSize, size: 14))
                     .disabled(connectionState != .connected)
                 
                 Button("History") {
                     showHistory = true
                 }
                 .buttonStyle(.borderedProminent)
+                .font(getFont(for: selectedFontSize, size: 14))
                 .disabled(connectionState != .connected)
                 
                 Button("Send") {
                     sendCommand()
                 }
                 .buttonStyle(.borderedProminent)
+                .font(getFont(for: selectedFontSize, size: 14))
                 .disabled(commandInput.isEmpty || connectionState != .connected)
             }
             .padding()
@@ -129,6 +137,19 @@ struct TerminalView: View {
             }
         }
         .navigationTitle("Terminal")
+        .navigationBarItems(trailing: Button("Settings") {
+            showSettings = true
+        })
+        .onAppear {
+            loadPreferences()
+        }
+        .sheet(isPresented: $showSettings) {
+            TerminalSettingsView(
+                isPresented: $showSettings,
+                selectedTheme: $selectedTheme,
+                selectedFontSize: $selectedFontSize
+            )
+        }
     }
     
     private func getConnectionStateText() -> String {
@@ -150,6 +171,17 @@ struct TerminalView: View {
             return Color.orange
         case .connected:
             return Color.green
+        }
+    }
+    
+    private func getFont(for fontSize: TerminalFontSize, size: CGFloat) -> Font {
+        switch fontSize {
+        case .small:
+            return Font.system(size: size * 0.8, design: .monospaced)
+        case .medium:
+            return Font.system(size: size, design: .monospaced)
+        case .large:
+            return Font.system(size: size * 1.2, design: .monospaced)
         }
     }
     
@@ -188,7 +220,7 @@ struct TerminalView: View {
         }
     }
     
-private func generateFakeResponse(for command: String) -> String {
+    private func generateFakeResponse(for command: String) -> String {
         // Simple mock responses for common commands
         switch command.lowercased() {
         case "ls":
@@ -210,6 +242,24 @@ private func generateFakeResponse(for command: String) -> String {
         default:
             return "Command not found: \(command)"
         }
+    }
+    
+    // MARK: - Preferences Management
+    private func loadPreferences() {
+        // Load theme preference
+        if let savedTheme = UserDefaults.standard.string(forKey: "TerminalTheme") {
+            selectedTheme = TerminalTheme(rawValue: savedTheme) ?? .dark
+        }
+        
+        // Load font size preference
+        if let savedFontSize = UserDefaults.standard.string(forKey: "TerminalFontSize") {
+            selectedFontSize = TerminalFontSize(rawValue: savedFontSize) ?? .medium
+        }
+    }
+    
+    private func savePreferences() {
+        UserDefaults.standard.set(selectedTheme.rawValue, forKey: "TerminalTheme")
+        UserDefaults.standard.set(selectedFontSize.rawValue, forKey: "TerminalFontSize")
     }
 }
 
