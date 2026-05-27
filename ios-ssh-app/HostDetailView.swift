@@ -9,7 +9,12 @@ import SwiftUI
 
 struct HostDetailView: View {
     let host: SSHHost
-    @StateObject private var hostManager = HostManager()
+    @ObservedObject var hostManager: HostManager
+    
+    init(host: SSHHost, hostManager: HostManager) {
+        self.host = host
+        self.hostManager = hostManager
+    }
     
     var body: some View {
         ScrollView {
@@ -77,5 +82,5 @@ struct HostDetailView: View {
 }
 
 #Preview {
-    HostDetailView(host: SSHHost(hostName: "Test Server", hostname: "test.example.org", username: "developer", port: 22))
+    HostDetailView(host: SSHHost(hostName: "Test Server", hostname: "test.example.org", username: "developer", port: 22), hostManager: HostManager())
 }

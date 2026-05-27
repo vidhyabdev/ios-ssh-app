@@ -21,7 +21,7 @@ struct SSHHostListView: View {
     var body: some View {
         NavigationView {
             List(hostManager.hosts, id: \.id) { host in
-                NavigationLink(destination: HostDetailView(host: host)) {
+                NavigationLink(destination: HostDetailView(host: host, hostManager: hostManager)) {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(host.hostName)
                             .font(.headline)
