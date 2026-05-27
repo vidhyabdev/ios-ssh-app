@@ -7,6 +7,7 @@
 
 import Foundation
 import SwiftUI
+import Combine
 
 class HostManager: ObservableObject {
     @Published var hosts: [SSHHost] = [
