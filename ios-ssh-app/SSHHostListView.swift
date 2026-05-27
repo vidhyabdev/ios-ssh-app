@@ -21,19 +21,21 @@ struct SSHHostListView: View {
     var body: some View {
         NavigationView {
             List(hostManager.hosts, id: \.id) { host in
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(host.hostName)
-                        .font(.headline)
-                    HStack {
-                        Text("Host: \(host.hostname)")
-                        Spacer()
-                        Text("Port: \(host.port)")
+                NavigationLink(destination: HostDetailView(host: host)) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(host.hostName)
+                            .font(.headline)
+                        HStack {
+                            Text("Host: \(host.hostname)")
+                            Spacer()
+                            Text("Port: \(host.port)")
+                        }
+                        Text("User: \(host.username)")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
                     }
-                    Text("User: \(host.username)")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
+                    .padding(.vertical, 4)
                 }
-                .padding(.vertical, 4)
             }
             .navigationTitle("SSH Hosts")
             .navigationBarItems(trailing: NavigationLink(destination: AddHostView(hostManager: hostManager)) {
