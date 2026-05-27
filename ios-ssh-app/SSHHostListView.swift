@@ -8,11 +8,19 @@
 import SwiftUI
 
 struct SSHHost: Identifiable, Codable {
-    let id = UUID()
+    let id: UUID
     let hostName: String
     let hostname: String
     let username: String
     let port: Int
+    
+    init(hostName: String, hostname: String, username: String, port: Int) {
+        self.id = UUID()
+        self.hostName = hostName
+        self.hostname = hostname
+        self.username = username
+        self.port = port
+    }
 }
 
 struct SSHHostListView: View {
