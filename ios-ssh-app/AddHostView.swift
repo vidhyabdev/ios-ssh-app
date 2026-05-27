@@ -14,6 +14,11 @@ struct AddHostView: View {
     @State private var port = "22"
     
     @Environment(\.presentationMode) var presentationMode
+    @ObservedObject var hostManager: HostManager
+    
+    init(hostManager: HostManager) {
+        self.hostManager = hostManager
+    }
     
     var body: some View {
         NavigationView {
@@ -28,9 +33,12 @@ struct AddHostView: View {
                 
                 Section {
                     Button("Save") {
-                        // In a real app, this would save the host
-                        // For now, we'll just dismiss the view
-                        presentationMode.wrappedValue.dismiss()
+                        // Create and add the new host to the list
+                        if let portInt = Int(port) {
+                            let newHost = SSHHost(hostName: hostName, hostname: hostname, username: username, port: portInt)
+                            hostManager.addHost(newHost)
+                            presentationMode.wrappedValue.dismiss()
+                        }
                     }
                     .disabled(hostName.isEmpty || hostname.isEmpty || username.isEmpty || port.isEmpty)
                 }
@@ -44,5 +52,5 @@ struct AddHostView: View {
 }
 
 #Preview {
-    AddHostView()
+    AddHostView(hostManager: HostManager())
 }

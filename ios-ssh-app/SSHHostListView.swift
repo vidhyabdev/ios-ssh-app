@@ -16,16 +16,11 @@ struct SSHHost: Identifiable {
 }
 
 struct SSHHostListView: View {
-    let hosts = [
-        SSHHost(hostName: "Work Server", hostname: "work.company.com", username: "admin", port: 22),
-        SSHHost(hostName: "Personal VM", hostname: "192.168.1.100", username: "user", port: 2222),
-        SSHHost(hostName: "Test Server", hostname: "test.example.org", username: "developer", port: 22),
-        SSHHost(hostName: "Backup Server", hostname: "backup.server.net", username: "backupuser", port: 2222)
-    ]
+    @StateObject private var hostManager = HostManager()
     
     var body: some View {
         NavigationView {
-            List(hosts, id: \.id) { host in
+            List(hostManager.hosts, id: \.id) { host in
                 VStack(alignment: .leading, spacing: 4) {
                     Text(host.hostName)
                         .font(.headline)
@@ -41,7 +36,7 @@ struct SSHHostListView: View {
                 .padding(.vertical, 4)
             }
             .navigationTitle("SSH Hosts")
-            .navigationBarItems(trailing: NavigationLink(destination: AddHostView()) {
+            .navigationBarItems(trailing: NavigationLink(destination: AddHostView(hostManager: hostManager)) {
                 Image(systemName: "plus")
             })
         }
