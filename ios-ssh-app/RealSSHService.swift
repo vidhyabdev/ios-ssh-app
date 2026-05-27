@@ -17,7 +17,7 @@ class RealSSHService: SSHService {
     
     func connect() async throws {
         // In a real implementation, this would use Citadel or another SSH library
-        guard let host = currentHost else {
+        guard currentHost != nil else {
             throw SSHError.connectionFailed
         }
         
@@ -93,7 +93,7 @@ class RealSSHService: SSHService {
         isExecutingCommand = true
         
         // Create a new cancellation task
-        cancellation = Task {
+        cancellation = Task.detached {
             // Simulate streaming output for long-running commands
             // In a real implementation, this would be replaced with actual SSH streaming
             let streamingCommands = ["ping", "top", "tail -f"]
