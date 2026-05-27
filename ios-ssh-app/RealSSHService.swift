@@ -93,7 +93,7 @@ class RealSSHService: SSHService {
         isExecutingCommand = true
         
         // Create a new cancellation task
-        cancellation = Task {
+        cancellation = Task.detached {
             // Simulate streaming output for long-running commands
             // In a real implementation, this would be replaced with actual SSH streaming
             let streamingCommands = ["ping", "top", "tail -f"]
