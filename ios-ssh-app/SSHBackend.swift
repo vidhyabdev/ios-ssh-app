@@ -24,10 +24,7 @@ enum SSHBackend: String, CaseIterable, Codable {
     
     /// Returns the default backend (MockSSHService)
     static let `default`: SSHBackend = .mock
-}
-
-/// Extension to create SSHService instances based on the backend
-extension SSHBackend {
+    
     /// Creates an SSHService instance based on the backend type
     func createSSHService() -> SSHService {
         switch self {

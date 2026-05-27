@@ -155,8 +155,7 @@ struct TerminalView: View {
             TerminalSettingsView(
                 isPresented: $showSettings,
                 selectedTheme: $selectedTheme,
-                selectedFontSize: $selectedFontSize,
-                selectedBackend: $selectedBackend
+                selectedFontSize: $selectedFontSize
             )
         }
     }

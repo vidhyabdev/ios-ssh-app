@@ -70,6 +70,7 @@ enum TerminalFontSize: String, CaseIterable, Codable {
     TerminalSettingsView(
         isPresented: .constant(true),
         selectedTheme: .constant(.dark),
-        selectedFontSize: .constant(.medium)
+        selectedFontSize: .constant(.medium),
+        selectedBackend: .constant(.mock)
     )
 }
