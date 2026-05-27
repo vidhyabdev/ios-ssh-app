@@ -1,0 +1,13 @@
+.DS_Store
+xcuserdata/
+*.xcuserstate
+DerivedData/
+.env
+*.p8
+*.mobileprovision
+*.cer
+*.p12
+*.key
+id_rsa
+id_ed25519
+*.pem
