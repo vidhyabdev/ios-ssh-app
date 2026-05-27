@@ -14,6 +14,8 @@ struct TerminalView: View {
     @State private var commandInput = ""
     @State private var terminalOutput = [String]()
     @State private var connectionState: ConnectionState = .disconnected
+    @State private var showHistory = false
+    @State private var commandHistory = [String]()
     
     enum ConnectionState {
         case disconnected
@@ -86,6 +88,12 @@ struct TerminalView: View {
                     .textFieldStyle(RoundedBorderTextFieldStyle())
                     .disabled(connectionState != .connected)
                 
+                Button("History") {
+                    showHistory = true
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(connectionState != .connected)
+                
                 Button("Send") {
                     sendCommand()
                 }
@@ -93,6 +101,27 @@ struct TerminalView: View {
                 .disabled(commandInput.isEmpty || connectionState != .connected)
             }
             .padding()
+            
+            // History sheet
+            .sheet(isPresented: $showHistory) {
+                NavigationStack {
+                    List(commandHistory.reversed(), id: \.self) { command in
+                        Text(command)
+                            .onTapGesture {
+                                commandInput = command
+                                showHistory = false
+                            }
+                    }
+                    .navigationTitle("History")
+                    .toolbar {
+                        ToolbarItem(placement: .topBarTrailing) {
+                            Button("Close") {
+                                showHistory = false
+                            }
+                        }
+                    }
+                }
+            }
         }
         .navigationTitle("Terminal")
     }
@@ -139,6 +168,11 @@ struct TerminalView: View {
         let command = commandInput.trimmingCharacters(in: .whitespacesAndNewlines)
         if !command.isEmpty {
             terminalOutput.append("$ \(command)")
+            
+            // Add to command history
+            if !commandHistory.contains(command) {
+                commandHistory.append(command)
+            }
             
             // Add a fake response
             let fakeResponse = generateFakeResponse(for: command)
