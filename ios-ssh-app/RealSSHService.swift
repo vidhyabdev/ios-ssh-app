@@ -139,8 +139,6 @@ class RealSSHService: SSHService {
             isExecutingCommand = false
         }
         
-        // Wait for the task to complete
-        try await cancellation!.value
     }
     
     func setHost(_ host: SSHHost) {

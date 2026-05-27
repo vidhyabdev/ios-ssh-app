@@ -250,35 +250,31 @@ private func disconnect() {
                     commandHistory.append(command)
                 }
                 
-                // Check if the service supports streaming
-                if let streamingService = sshService as? RealSSHService {
-                    // For streaming services, we'll handle output incrementally
-                    isCommandRunning = true
-                    do {
-                        try await streamingService.sendCommandStreaming(command) { output in
-                            DispatchQueue.main.async {
-                                if !output.isEmpty {
-                                    terminalOutput.append(output)
-                                }
-                            }
-                        }
-                    } catch {
-                        DispatchQueue.main.async {
-                            terminalOutput.append("Error: \(error.localizedDescription)")
-                        }
-                    }
-                    isCommandRunning = false
-                } else {
-                    // For non-streaming services (like MockSSHService), use existing behavior
-                    do {
-                        let response = try await sshService.sendCommand(command)
-                        if !response.isEmpty {
-                            terminalOutput.append(response)
-                        }
-                    } catch {
-                        terminalOutput.append("Error: \(error.localizedDescription)")
-                    }
-                }
+                 // Check if the service supports streaming
+                 if let streamingService = sshService as? RealSSHService {
+                     // For streaming services, we'll handle output incrementally
+                     isCommandRunning = true
+                     // Start the streaming command asynchronously
+                     streamingService.sendCommandStreaming(command) { output in
+                         DispatchQueue.main.async {
+                             if !output.isEmpty {
+                                 terminalOutput.append(output)
+                             }
+                         }
+                     }
+                     // Note: We don't await the streaming command because it runs asynchronously
+                     // and we want to allow the stop button to work during execution
+                 } else {
+                     // For non-streaming services (like MockSSHService), use existing behavior
+                     do {
+                         let response = try await sshService.sendCommand(command)
+                         if !response.isEmpty {
+                             terminalOutput.append(response)
+                         }
+                     } catch {
+                         terminalOutput.append("Error: \(error.localizedDescription)")
+                     }
+                 }
                 
                 // Clear input
                 commandInput = ""
