@@ -89,6 +89,7 @@ class RealSSHService: SSHService {
 """
         default:
             // For other commands, return a generic response that looks like real output
+            // Return just the command name without the prefix
             return "\(command) executed successfully\n"
         }
     }
