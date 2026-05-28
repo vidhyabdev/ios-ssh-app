@@ -93,7 +93,7 @@ class RealSSHService: SSHService {
         isExecutingCommand = true
         
         // Create a new cancellation task
-        cancellation = Task {
+        cancellation = Task { [weak self] in
             // This is where we'd integrate with a real SSH library to stream output
             // For now, we'll simulate streaming behavior with a placeholder
             // In a real implementation, this would use the actual SSH library to stream output
