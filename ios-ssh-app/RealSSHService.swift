@@ -2,7 +2,7 @@ import Foundation
 import NMSSH
 
 /// Real implementation of SSHService that executes commands through actual SSH
-class RealSSHService: NSObject {
+class RealSSHService: NSObject, SSHService {
     private var isConnected = false
     private var currentHost: SSHHost?
     private var session: NMSSHSession? = nil
@@ -78,9 +78,5 @@ class RealSSHService: NSObject {
     
     func setHost(_ host: SSHHost) {
         self.currentHost = host
-    }
-    
-    func cancelCommand() {
-        // Not implemented in this basic version - can be extended later if needed
     }
 }
