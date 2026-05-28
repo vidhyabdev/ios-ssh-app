@@ -66,7 +66,7 @@ class RealSSHService: NSObject, SSHService {
         let output = session.channel.execute(command, error: nil)
         
         // Return the command output
-        return output ?? ""
+        return output
     }
     
     func sendCommandStreaming(_ command: String, onOutput: @escaping (String) -> Void) async throws {
