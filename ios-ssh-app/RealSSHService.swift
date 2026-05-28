@@ -1,5 +1,6 @@
 import Foundation
 import Citadel
+import NIOCore
 
 /// Real implementation of SSHService that executes commands through actual SSH
 class RealSSHService: SSHService {
@@ -13,18 +14,11 @@ class RealSSHService: SSHService {
             throw SSHError.connectionFailed
         }
         
-        // Validate required host properties (assuming they are non-optional)
-        guard host.hostname != nil && 
-              host.username != nil &&
-              host.password != nil else {
-            throw SSHError.connectionFailed
-        }
-        
         // Create SSH client settings using Citadel
         let settings = SSHClientSettings(
-            host: host.hostname!,
+            host: host.hostname,
             authenticationMethod: {
-                .passwordBased(username: host.username!, password: host.password!)
+                .passwordBased(username: host.username, password: host.password ?? "")
             },
             hostKeyValidator: .acceptAnything()
         )
@@ -60,8 +54,8 @@ class RealSSHService: SSHService {
             mergeStreams: true
         )
         
-        // Convert ByteBuffer to String (assuming executeCommand returns ByteBuffer)
-        return String(buffer: output)
+        // Convert ByteBuffer to String
+        return String(decoding: output.readableBytesView, as: UTF8.self)
     }
     
     func cancelCommand() {
