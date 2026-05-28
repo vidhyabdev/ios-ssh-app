@@ -15,19 +15,39 @@ class RealSSHService: SSHService {
         // Create NMSSH session with host and port
         let session = NMSSHSession.connect(toHost: "\(host.hostname):\(host.port)", withUsername: host.username)
         
+        // Set up host key verification delegate
+        session.delegate = self
+        
         // Authenticate with password
-        _ = session.authenticate(byPassword: host.password ?? "")
+        let authResult = session.authenticate(byPassword: host.password ?? "")
         
         // Check if connection and authentication were successful
         if session.isConnected && session.isAuthorized {
             self.session = session
             isConnected = true
         } else {
-            // Handle connection/authentication failure
+            // Handle connection/authentication failure with more specific errors
             if !session.isConnected {
-                throw SSHError.connectionFailedWithDetails("Failed to establish SSH connection to \(host.hostname):\(host.port)")
+                // Check for specific connection issues
+                if session.connectionError != nil {
+                    if session.connectionError!.localizedDescription.contains("timed out") {
+                        throw SSHError.timeout
+                    } else if session.connectionError!.localizedDescription.contains("unreachable") {
+                        throw SSHError.hostUnreachable
+                    } else {
+                        throw SSHError.connectionFailedWithDetails("Failed to establish SSH connection to \(host.hostname):\(host.port). Connection error: \(session.connectionError!.localizedDescription)")
+                    }
+                } else {
+                    throw SSHError.connectionFailedWithDetails("Failed to establish SSH connection to \(host.hostname):\(host.port)")
+                }
             } else if !session.isAuthorized {
-                throw SSHError.connectionFailedWithDetails("Authentication failed for user \(host.username) on \(host.hostname):\(host.port)")
+                // Check for authentication failure reason
+                if authResult == false {
+                    // NMSSH authentication failure
+                    throw SSHError.authenticationFailed
+                } else {
+                    throw SSHError.connectionFailedWithDetails("Authentication failed for user \(host.username) on \(host.hostname):\(host.port)")
+                }
             }
         }
     }
@@ -68,5 +88,22 @@ class RealSSHService: SSHService {
     
     func cancelCommand() {
         // Not implemented in this basic version - can be extended later if needed
+    }
+}
+
+// MARK: - NMSSHSessionDelegate
+extension RealSSHService: NMSSHSessionDelegate {
+    func session(_ session: NMSSHSession, didReceiveHostKey key: String) {
+        // This delegate method is called when host key is received
+        // We could implement trust-on-first-use logic here if needed
+        // For now, we'll let NMSSH handle it according to its default behavior
+    }
+    
+    func session(_ session: NMSSHSession, didReceiveAuthenticationBanner banner: String) {
+        // Handle authentication banners if needed
+    }
+    
+    func sessionDidDisconnect(_ session: NMSSHSession) {
+        // Handle disconnection
     }
 }

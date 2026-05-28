@@ -95,6 +95,11 @@ enum SSHError: Error, LocalizedError {
     case notConnected
     case connectionFailed
     case connectionFailedWithDetails(String)
+    case authenticationFailed
+    case hostKeyVerificationFailed
+    case hostUnreachable
+    case timeout
+    case sshHandshakeFailed
     case commandExecutionFailed
     
     var errorDescription: String? {
@@ -105,6 +110,16 @@ enum SSHError: Error, LocalizedError {
             return "Failed to connect to SSH host"
         case .connectionFailedWithDetails(let details):
             return details
+        case .authenticationFailed:
+            return "Authentication failed for SSH host"
+        case .hostKeyVerificationFailed:
+            return "Host key verification failed. The authenticity of the host cannot be established."
+        case .hostUnreachable:
+            return "Host is unreachable"
+        case .timeout:
+            return "Connection timed out"
+        case .sshHandshakeFailed:
+            return "SSH handshake failed"
         case .commandExecutionFailed:
             return "Failed to execute command on SSH host"
         }
