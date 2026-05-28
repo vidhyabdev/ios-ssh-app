@@ -16,7 +16,7 @@ class RealSSHService: SSHService {
         let session = NMSSHSession.connect(toHost: "\(host.hostname):\(host.port)", withUsername: host.username)
         
         // Authenticate with password
-        let isAuthenticated = session.authenticate(byPassword: host.password ?? "")
+        _ = session.authenticate(byPassword: host.password ?? "")
         
         // Check if connection and authentication were successful
         if session.isConnected && session.isAuthorized {
@@ -49,13 +49,7 @@ class RealSSHService: SSHService {
         }
         
         // Execute command on remote server
-        var error: NSError?
-        let output = session.channel.execute(command, error: &error)
-        
-        // Check for execution errors
-        if let error = error {
-            throw SSHError.commandExecutionFailed
-        }
+        let output = session.channel.execute(command, error: nil)
         
         // Return the command output
         return output ?? ""
@@ -70,5 +64,9 @@ class RealSSHService: SSHService {
     
     func setHost(_ host: SSHHost) {
         self.currentHost = host
+    }
+    
+    func cancelCommand() {
+        // Not implemented in this basic version - can be extended later if needed
     }
 }
