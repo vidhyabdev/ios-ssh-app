@@ -265,13 +265,13 @@ private func disconnect() {
                      isCommandRunning = true
                      // Start the streaming command asynchronously
                      do {
-                         try await streamingService.sendCommandStreaming(command) { output in
-                             DispatchQueue.main.async {
-                                 if !output.isEmpty {
-                                     terminalOutput.append("[RealSSHService] \(output)")
-                                 }
-                             }
-                         }
+try await streamingService.sendCommandStreaming(command) { output in
+                              DispatchQueue.main.async {
+                                  if !output.isEmpty {
+                                      terminalOutput.append(output)
+                                  }
+                              }
+                          }
                          // Command finished, set running flag to false
                          isCommandRunning = false
                      } catch {
