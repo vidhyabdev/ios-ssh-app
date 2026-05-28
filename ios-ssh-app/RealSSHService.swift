@@ -1,10 +1,3 @@
-//
-//  RealSSHService.swift
-//  ios-ssh-app
-//
-//  Created by [Your Name] on [Date].
-//
-
 import Foundation
 
 /// Real implementation of SSHService that executes commands through actual SSH
@@ -12,84 +5,98 @@ class RealSSHService: SSHService {
     private var isConnected = false
     private var currentHost: SSHHost?
     private var cancellation: Task<Void, Never>? = nil
-
+    private var sshClient: Any? = nil // This would be the actual Citadel SSH client
+    
     func connect() async throws {
-        // Validate host information
-        guard currentHost != nil else {
+        guard let host = currentHost else {
             throw SSHError.connectionFailed
         }
-
-        // In a real implementation, this would establish an actual SSH connection
-        // This would involve initializing an SSH client with the host credentials
-        // For example, using a library like SwiftySSH or similar
         
-        // For demonstration purposes, simulate a successful connection
-        try await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
+        // Connect to SSH server using host details
+        // This would use the actual Citadel SSH library in a real implementation
+        // Example implementation (this is what would actually be implemented):
+        /*
+        let sshClient = try CitadelSSHClient(
+            hostname: host.hostname,
+            port: host.port,
+            username: host.username,
+            password: host.password ?? ""
+        )
+        try await sshClient.connect()
+        self.sshClient = sshClient
+        isConnected = true
+        */
+        
+        // For now, simulate successful connection
+        // In a real implementation, this would establish a connection
         isConnected = true
     }
-
+    
     func disconnect() {
-        // Close SSH connection
+        // Close the actual SSH connection
+        // In real implementation:
+        // sshClient.disconnect()
         isConnected = false
-        // Cancel any ongoing command
         cancellation?.cancel()
+        sshClient = nil
     }
-
+    
     func sendCommand(_ command: String) async throws -> String {
         guard isConnected else {
             throw SSHError.notConnected
         }
-
-        // Execute the command directly on the remote SSH server
-        // This represents the generic Citadel execution path for all commands
-        // All commands are sent directly to the remote server without special handling
         
-        // Simulate command execution delay (in real implementation, this would be replaced with actual SSH execution)
-        try await Task.sleep(nanoseconds: 300_000_000) // 0.3 seconds
-
-        // In a real implementation, this would execute the actual SSH command
-        // and return the real stdout from the server
-        // For now, returning a placeholder that would be replaced with actual SSH execution
-        // In production, this would be replaced with actual SSH command execution logic
-        return "Command executed successfully"
+        // Execute command on remote server and return actual stdout
+        // In real implementation:
+        /*
+        guard let sshClient = self.sshClient as? CitadelSSHClient else {
+            throw SSHError.connectionFailed
+        }
+        let result = try await sshClient.executeCommand(command)
+        return result.stdout
+        */
+        
+        // For now, simulate command execution
+        // In a real implementation, this would execute the actual command
+        // and return the real stdout
+        throw SSHError.commandExecutionFailed
     }
-
+    
     func cancelCommand() {
         cancellation?.cancel()
     }
-
+    
     func sendCommandStreaming(_ command: String, onOutput: @escaping (String) -> Void) async throws {
         guard isConnected else {
             throw SSHError.notConnected
         }
-
+        
         // Cancel any previous command
         cancellation?.cancel()
-
+        
         // Create a new cancellation task
         cancellation = Task {
             do {
-                // Simulate streaming output for the command execution
-                // In a real implementation, this would be the actual SSH output streamed line by line
-                
-                // For demonstration purposes, simulate streaming with delays
-                // In a real implementation, this would be replaced with actual SSH command execution
-                let outputLines = ["Command output for: \(command)", "This would be streaming output from the actual server."]
-                
-                for line in outputLines {
-                    // Simulate delay between output lines to mimic real streaming
-                    try await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
-                    onOutput(line)
+                // Stream real output from SSH server line by line
+                // In real implementation:
+                /*
+                guard let sshClient = self.sshClient as? CitadelSSHClient else {
+                    throw SSHError.connectionFailed
                 }
+                try await sshClient.executeCommandStreaming(command) { output in
+                    onOutput(output)
+                }
+                */
                 
-                // Add a final newline for clean formatting
-                onOutput("\n")
+                // For now, simulate streaming output
+                // In a real implementation, this would stream actual server output
+                onOutput("Command execution failed: Not implemented\n")
             } catch {
                 onOutput("Command execution failed: \(error.localizedDescription)\n")
             }
         }
     }
-
+    
     func setHost(_ host: SSHHost) {
         self.currentHost = host
     }
