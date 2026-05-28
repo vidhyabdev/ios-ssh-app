@@ -54,13 +54,31 @@ class RealSSHService: SSHService {
             
             throw SSHError.connectionFailedWithDetails("Authentication failed. Possible causes:\n• Wrong username/password\n• Password authentication disabled on server\n• Host unreachable\n• Unsupported host key/auth method")
         } catch {
-            // Log other connection errors
+            // Log other connection errors with more detail
             os_log("SSH connection failed with error: %{public}@", 
                    log: OSLog.shared, 
                    type: .error,
                    error.localizedDescription)
             
-            throw error
+            // Check if we can provide more specific error information
+            if let sshError = error as? Citadel.SSHClientError {
+                switch sshError {
+                case .error4:
+                    os_log("SSH connection failed with error 4: %{public}@", 
+                           log: OSLog.shared, 
+                           type: .error,
+                           "Authentication failed")
+                    throw SSHError.connectionFailedWithDetails("Authentication failed. Possible causes:\n• Wrong username/password\n• Password authentication disabled on server\n• Host unreachable\n• Unsupported host key/auth method")
+                default:
+                    os_log("SSH connection failed with Citadel error: %{public}@", 
+                           log: OSLog.shared, 
+                           type: .error,
+                           String(describing: sshError))
+                    throw SSHError.connectionFailedWithDetails("SSH connection failed with error: \(sshError.localizedDescription)")
+                }
+            } else {
+                throw error
+            }
         }
     }
     
