@@ -35,11 +35,12 @@ class RealSSHService: SSHService {
             print("Successfully connected to SSH host: \(host.hostname):\(host.port) as \(host.username)")
         } catch let sshError as Citadel.SSHClientError {
             // Handle specific Citadel SSH client errors
-            switch sshError {
-            case .error4:
+            // Check if it's an authentication failure by examining the error description
+            let errorDescription = sshError.localizedDescription
+            if errorDescription.contains("error 4") || errorDescription.contains("Authentication failed") {
                 print("SSH connection failed with error 4: Authentication failed")
                 throw SSHError.connectionFailedWithDetails("Authentication failed. Possible causes:\n• Wrong username/password\n• Password authentication disabled on server\n• Host unreachable\n• Unsupported host key/auth method")
-            default:
+            } else {
                 print("SSH connection failed with Citadel error: \(sshError)")
                 throw SSHError.connectionFailedWithDetails("SSH connection failed with error: \(sshError.localizedDescription)")
             }
