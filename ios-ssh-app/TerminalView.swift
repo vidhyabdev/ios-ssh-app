@@ -25,11 +25,13 @@ struct TerminalView: View {
     @State private var selectedFontSize: TerminalFontSize = .medium
     
     // SSH Service
-    @State private var sshService: SSHService = MockSSHService()
+    @State private var sshService: SSHService
     
     init(host: SSHHost, hostManager: HostManager) {
         self.host = host
         self.hostManager = hostManager
+        // Initialize with the selected backend preference
+        self._sshService = State(initialValue: selectedBackend.createSSHService())
     }
     
     enum ConnectionState {
@@ -259,7 +261,7 @@ private func disconnect() {
                          try await streamingService.sendCommandStreaming(command) { output in
                              DispatchQueue.main.async {
                                  if !output.isEmpty {
-                                     terminalOutput.append(output)
+                                     terminalOutput.append("[RealSSHService] \(output)")
                                  }
                              }
                          }
