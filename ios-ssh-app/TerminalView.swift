@@ -114,10 +114,12 @@ struct TerminalView: View {
             
             // Command input area
             HStack {
-                TextField("Enter command...", text: $commandInput)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .font(getFont(for: selectedFontSize, size: 14))
-                    .disabled(connectionState != .connected || isCommandRunning)
+                 TextField("Enter command...", text: $commandInput)
+                     .textFieldStyle(RoundedBorderTextFieldStyle())
+                     .font(getFont(for: selectedFontSize, size: 14))
+                     .autocapitalization(.none)
+                     .autocorrectionDisabled(true)
+                     .disabled(connectionState != .connected || isCommandRunning)
                 
                 Button("History") {
                     showHistory = true
