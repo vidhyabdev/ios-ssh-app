@@ -21,6 +21,10 @@ class RealSSHService: SSHService {
             throw SSHError.connectionFailed
         }
         
+        // Temporary warning: Password authentication is currently stored in plaintext
+        // This should be moved to Keychain storage for production use
+        // WARNING: THIS IS TEMPORARY IMPLEMENTATION FOR TESTING PURPOSES ONLY
+        
         // Simulate connection process with realistic error handling
         // In a real implementation, this would establish an actual SSH connection
         // For now, simulating connection with realistic delays and potential errors

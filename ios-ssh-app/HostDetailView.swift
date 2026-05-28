@@ -55,6 +55,9 @@ struct HostDetailView: View {
                         Text("\(host.port)")
                             .font(.subheadline)
                     }
+                    
+                    // Password field is intentionally hidden for security reasons
+                    // Temporary implementation - will be moved to Keychain later
                 }
                 .padding()
                 .background(Color.gray.opacity(0.1))

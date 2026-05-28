@@ -12,6 +12,7 @@ struct EditHostView: View {
     @State private var hostname = ""
     @State private var username = ""
     @State private var port = "22"
+    @State private var password = "" // Temporary password field for SSH testing
     
     @Environment(\.presentationMode) var presentationMode
     @ObservedObject var hostManager: HostManager
@@ -26,6 +27,7 @@ struct EditHostView: View {
         _hostname = State(initialValue: hostToEdit.hostname)
         _username = State(initialValue: hostToEdit.username)
         _port = State(initialValue: "\(hostToEdit.port)")
+        _password = State(initialValue: hostToEdit.password ?? "") // Initialize with existing password
     }
     
     var body: some View {
@@ -36,12 +38,13 @@ struct EditHostView: View {
                 TextField("Username", text: $username)
                 TextField("Port", text: $port)
                     .keyboardType(.numberPad)
+                SecureField("Password (Optional)", text: $password) // Temporary password field for SSH testing
             }
             
             Section {
                 Button("Update") {
                     if let portInt = Int(port) {
-                        let updatedHost = SSHHost(hostName: hostName, hostname: hostname, username: username, port: portInt)
+                        let updatedHost = SSHHost(hostName: hostName, hostname: hostname, username: username, port: portInt, password: password.isEmpty ? nil : password)
                         
                         // Find and replace the host in the array
                         if let index = hostManager.hosts.firstIndex(where: { $0.id == hostToEdit.id }) {

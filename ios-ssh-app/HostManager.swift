@@ -35,10 +35,10 @@ class HostManager: ObservableObject {
         } else {
             // If no saved hosts, load sample hosts
             hosts = [
-                SSHHost(hostName: "Work Server", hostname: "work.company.com", username: "admin", port: 22),
-                SSHHost(hostName: "Personal VM", hostname: "192.168.1.100", username: "user", port: 2222),
-                SSHHost(hostName: "Test Server", hostname: "test.example.org", username: "developer", port: 22),
-                SSHHost(hostName: "Backup Server", hostname: "backup.server.net", username: "backupuser", port: 2222)
+                SSHHost(hostName: "Work Server", hostname: "work.company.com", username: "admin", port: 22, password: nil),
+                SSHHost(hostName: "Personal VM", hostname: "192.168.1.100", username: "user", port: 2222, password: nil),
+                SSHHost(hostName: "Test Server", hostname: "test.example.org", username: "developer", port: 22, password: nil),
+                SSHHost(hostName: "Backup Server", hostname: "backup.server.net", username: "backupuser", port: 2222, password: nil)
             ]
         }
     }

@@ -13,13 +13,15 @@ struct SSHHost: Identifiable, Codable {
     let hostname: String
     let username: String
     let port: Int
+    let password: String? // Temporary password field for SSH testing
     
-    init(hostName: String, hostname: String, username: String, port: Int) {
+    init(hostName: String, hostname: String, username: String, port: Int, password: String? = nil) {
         self.id = UUID()
         self.hostName = hostName
         self.hostname = hostname
         self.username = username
         self.port = port
+        self.password = password
     }
 }
 
