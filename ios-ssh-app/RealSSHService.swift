@@ -59,39 +59,10 @@ class RealSSHService: SSHService {
         // let output = try await sshClient.execute(command)
         // return output
         
-        // Return realistic output for the requested commands
-        switch command {
-        case "whoami":
-            return "dgx-user\n"
-        case "pwd":
-            return "/home/dgx-user\n"
-        case "uname -a":
-            return "Linux dgx-host 5.4.0-100-generic #113-Ubuntu SMP Thu Feb 13 10:34:31 UTC 2020 x86_64 x86_64 x86_64 GNU/Linux\n"
-        case "hostname":
-            return "dgx-host\n"
-        case "nvidia-smi":
-            return """
-+-----------------------------------------------------------------------------+
-| NVIDIA-SMI 440.33.01    Driver Version: 440.33.01    CUDA Version: 10.2     |
-|-------------------------------+----------------------+----------------------+
-| GPU  Name        Persistence-M| Bus Id        Disp.A | Volatile Uncorr. ECC |
-| Fan  Temp  Perf  Pwr:Usage/Cap| Memory-Usage     Allocatable PBM|
-|===============================+======================+======================|
-|   0  Tesla V100-PCIE...  Off  | 00000000:00:1E.0 Off |                    0 |
-| N/A   37C    P0    25W / 250W |   1045MiB / 32768MiB |      0MiB / 32768MiB |
-+-------------------------------+----------------------+----------------------+
-
-+-----------------------------------------------------------------------------+
-| Processes:                                                       GPU Memory |
-|  GPU       PID   Type   Process name                             Usage      |
-|=============================================================================|
-|    0      1234      C   python                                      1045MiB |
-+-----------------------------------------------------------------------------+
-"""
-        default:
-            // For other commands, return a generic response that looks like real output
-            return "\(command) executed successfully\n"
-        }
+        // For now, we'll return a generic response indicating that this is where
+        // the real SSH command execution would happen
+        // This is a placeholder for the real implementation
+        return "Command '\(command)' executed successfully\n"
     }
     
     func cancelCommand() {
@@ -109,10 +80,12 @@ class RealSSHService: SSHService {
         // Create a new cancellation task
         cancellation = Task {
             do {
-                // Simulate command execution delay
+                // In a real implementation, this would stream the actual command output
+                // For now, simulate streaming by sending a response after a delay
                 try await Task.sleep(nanoseconds: 300_000_000) // 0.3 seconds
                 
-                // In a real implementation, this would stream the actual command output
+                // In a real implementation, we would stream the actual command output line by line
+                // For now, we'll just send the full response
                 let response = try await self.sendCommand(command)
                 onOutput(response)
             } catch {
