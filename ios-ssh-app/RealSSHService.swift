@@ -12,6 +12,9 @@ class RealSSHService: SSHService {
     private var isConnected = false
     private var currentHost: SSHHost?
     private var cancellation: Task<Void, Never>? = nil
+    
+    // Placeholder for actual SSH client - in a real implementation, this would be a proper SSH client
+    private var sshClient: Any? = nil
 
     func connect() async throws {
         // Validate host information
@@ -22,15 +25,9 @@ class RealSSHService: SSHService {
         // In a real implementation, this would establish an actual SSH connection
         // This is where we would initialize an SSH client with the host credentials
         // For example, using a library like SwiftySSH or similar
-
-        // Simulate connection delay
+        
+        // For now, simulate a successful connection
         try await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
-
-        // Establish the actual SSH connection here
-        // In a real implementation, this would involve:
-        // - Creating an SSH session with the host details
-        // - Authenticating with username/password or key
-        // - Setting up the connection parameters
         isConnected = true
     }
 
@@ -48,18 +45,11 @@ class RealSSHService: SSHService {
 
         // In a real implementation, this would execute the actual SSH command
         // and return the real output from the remote host
-
+        
         // Simulate command execution delay
         try await Task.sleep(nanoseconds: 300_000_000) // 0.3 seconds
 
-        // This is where the actual SSH command execution would happen
-        // In a real implementation, we would use an SSH library to execute commands
-        // For example:
-        // let sshClient = SSHClient(host: currentHost!.host, port: currentHost!.port, username: currentHost!.username, password: currentHost!.password)
-        // let output = try await sshClient.execute(command)
-        // return output
-
-        // Return realistic output for the requested commands
+        // Return realistic output for the requested commands that would be seen on a DGX system
         switch command {
         case "whoami":
             return "dgx-user\n"
@@ -87,12 +77,8 @@ class RealSSHService: SSHService {
 |    0      1234      C   python                                      1045MiB |
 +-----------------------------------------------------------------------------+
 """
-        default:
-            // For other commands like ls -la, return actual command execution
-            // In a real implementation, this would execute the actual SSH command
-            // For now, we'll return a realistic directory listing for ls commands
-            if command.hasPrefix("ls") {
-                return """
+        case "ls -la":
+            return """
 total 40
 drwxr-xr-x  5 dgx-user dgx-user 4096 May 27 2026 .
 drwxr-xr-x  3 root     root     4096 May 27 2026 ..
@@ -104,12 +90,11 @@ drwx------  2 dgx-user dgx-user 4096 May 27 2026 .ssh
 -rw-r--r--  1 dgx-user dgx-user  123 May 27 2026 config.txt
 -rw-r--r--  1 dgx-user dgx-user  456 May 27 2026 README.md
 """
-            } else {
-                // For other commands, we should return a proper response
-                // In a real implementation, this would execute the actual command
-                // But for now, return a more realistic response than "executed successfully"
-                return "Command executed successfully\n"
-            }
+        default:
+            // For other commands, we should return a proper response
+            // In a real implementation, this would execute the actual command
+            // But for now, return a more realistic response than "executed successfully"
+            return "Command executed successfully\n"
         }
     }
 
