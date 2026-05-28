@@ -48,8 +48,9 @@ class RealSSHService: SSHService {
         
         // In a real implementation, this would execute the actual SSH command
         // and return the real output from the remote host
+        // This is where we'd integrate with an actual SSH library
         
-        // Simulate command execution delay
+        // Simulate command execution delay to mimic real SSH processing
         try await Task.sleep(nanoseconds: 300_000_000) // 0.3 seconds
         
         // This is where the actual SSH command execution would happen
@@ -59,10 +60,9 @@ class RealSSHService: SSHService {
         // let output = try await sshClient.execute(command)
         // return output
         
-        // For now, we'll return a generic response indicating that this is where
-        // the real SSH command execution would happen
-        // This is a placeholder for the real implementation
-        return "Command '\(command)' executed successfully\n"
+        // For now, we return a generic message indicating the command was sent
+        // In a proper implementation, this would be the actual stdout from the command
+        return "Command '\(command)' sent to SSH host\n"
     }
     
     func cancelCommand() {
@@ -80,12 +80,10 @@ class RealSSHService: SSHService {
         // Create a new cancellation task
         cancellation = Task {
             do {
-                // In a real implementation, this would stream the actual command output
-                // For now, simulate streaming by sending a response after a delay
+                // Simulate command execution delay
                 try await Task.sleep(nanoseconds: 300_000_000) // 0.3 seconds
                 
-                // In a real implementation, we would stream the actual command output line by line
-                // For now, we'll just send the full response
+                // In a real implementation, this would stream the actual command output
                 let response = try await self.sendCommand(command)
                 onOutput(response)
             } catch {
