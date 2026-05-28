@@ -23,6 +23,9 @@ protocol SSHService {
     
     /// Send a command to the SSH host with streaming output
     func sendCommandStreaming(_ command: String, onOutput: @escaping (String) -> Void) async throws
+    
+    /// Cancel the currently running command
+    func cancelCommand()
 }
 
 /// Mock implementation of SSHService for testing and development
@@ -87,6 +90,11 @@ class MockSSHService: SSHService {
     
     func setHost(_ host: SSHHost) {
         // Mock service doesn't use host information
+    }
+    
+    func cancelCommand() {
+        // For mock service, we just log the cancellation
+        print("Cancel command requested (mock)")
     }
 }
 

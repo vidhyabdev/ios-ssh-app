@@ -79,4 +79,11 @@ class RealSSHService: NSObject, SSHService {
     func setHost(_ host: SSHHost) {
         self.currentHost = host
     }
+    
+    func cancelCommand() {
+        // For now, we'll just log that cancellation was requested
+        // In a real implementation, we might need to handle cancellation differently
+        // depending on how the streaming is implemented
+        print("Cancel command requested")
+    }
 }
