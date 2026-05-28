@@ -53,55 +53,15 @@ class RealSSHService: SSHService {
         }
         
         // In a real implementation, this would execute the actual SSH command
-        // and return the stdout output
-        // For now, simulating with realistic responses for supported commands
+        // and return the stdout output using a library like SwiftySSH, SSHClient, or Citadel
+        // For now, simulating execution of any command with generic output
         
-        // Support for additional commands like nvidia-smi, ls -la, ps aux
-        switch command.lowercased() {
-        case "pwd":
-            return "/home/\(currentHost?.username ?? "user")"
-        case "ls":
-            return "Documents  Downloads  Pictures  Videos  Desktop  Music"
-        case "ls -la":
-            return """
-total 40
-drwxr-xr-x  5 user user 4096 May 27 10:00 .
-drwxr-xr-x  2 root root 4096 May 27 09:00 ..
--rw-r--r--  1 user user  220 May 27 09:00 .bash_logout
--rw-r--r--  1 user user 3526 May 27 09:00 .bashrc
--rw-r--r--  1 user user  807 May 27 09:00 .profile
-drwxr-xr-x  2 user user 4096 May 27 10:00 Documents
-drwxr-xr-x  2 user user 4096 May 27 10:00 Downloads
-drwxr-xr-x  2 user user 4096 May 27 10:00 Pictures
-drwxr-xr-x  2 user user 4096 May 27 10:00 Videos
-drwxr-xr-x  2 user user 4096 May 27 10:00 Desktop
-drwxr-xr-x  2 user user 4096 May 27 10:00 Music
-"""
-        case "whoami":
-            return currentHost?.username ?? "user"
-        case "uname -a":
-            return "Linux \(currentHost?.hostname ?? "localhost") 5.4.0-42-generic #46-Ubuntu SMP Fri Jul 10 00:24:02 UTC 2020 x86_64 x86_64 x86_64 GNU/Linux"
-        case "nvidia-smi":
-            return """
-+-----------------------------------------------------------------------------+
-| NVIDIA-SMI 470.82.01    Driver Version: 470.82.01    CUDA Version: 11.4     |
-|-------------------------------+----------------------+----------------------+
-| GPU  Name        Persistence-M| Bus Id        Disp.A | Volatile Uncorr. ECC |
-| Fan  Temp  Perf  Pwr:Usage/Cap| Memory-Usage     Allocatable P
-""";
-        case "ps aux":
-            return """
-USER       PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND
-root         1  0.0  0.0  19392  1544 ?        Ss   May27   0:01 /sbin/init
-root         2  0.0  0.0      0     0 ?        S    May27   0:00 [kthreadd]
-root         3  0.0  0.0      0     0 ?        S    May27   0:00 [ksoftirqd/0]
-root         4  0.0  0.0      0     0 ?        S    May27   0:00 [kworker/0:0]
-root         5  0.0  0.0      0     0 ?        S    May27   0:00 [kworker/0:0H]
-"""
-        default:
-            // This shouldn't happen due to the guard clause above, but keeping for safety
-            throw SSHError.commandExecutionFailed
-        }
+        // Simulate realistic command execution delay
+        try await Task.sleep(nanoseconds: 300_000_000) // 0.3 second delay
+        
+        // Return a generic response that represents what a real SSH command would return
+        // This ensures all commands go through the same execution path
+        return "Command '\(command)' executed successfully\nOutput would appear here in a real implementation."
     }
     
     func cancelCommand() {
@@ -122,26 +82,12 @@ root         5  0.0  0.0      0     0 ?        S    May27   0:00 [kworker/0:0H]
         
         // Create a new cancellation task
         cancellation = Task {
-            // For non-streaming execution as required, we'll execute the command once
-            // and return the full output
             do {
-                try await Task.sleep(nanoseconds: 500_000_000) // 0.5 second delay
+                // Simulate command execution with realistic delay
+                try await Task.sleep(nanoseconds: 300_000_000) // 0.3 second delay
                 
-                // Simulate command execution with output
-                let response: String
-                
-                switch command.lowercased() {
-                case "pwd":
-                    response = "/home/\(currentHost?.username ?? "user")"
-                case "ls":
-                    response = "Documents  Downloads  Pictures  Videos  Desktop  Music"
-                case "whoami":
-                    response = currentHost?.username ?? "user"
-                case "uname -a":
-                    response = "Linux \(currentHost?.hostname ?? "localhost") 5.4.0-42-generic #46-Ubuntu SMP Fri Jul 10 00:24:02 UTC 2020 x86_64 x86_64 x86_64 GNU/Linux"
-                default:
-                    response = "Command executed successfully"
-                }
+                // Simulate streaming output for any command
+                let response = "Command '\(command)' executed successfully\nOutput would appear here in a real implementation."
                 
                 // Send the final response
                 onOutput(response)
