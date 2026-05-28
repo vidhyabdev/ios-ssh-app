@@ -30,8 +30,13 @@ struct TerminalView: View {
     init(host: SSHHost, hostManager: HostManager) {
         self.host = host
         self.hostManager = hostManager
-        // Initialize with the selected backend preference
-        self._sshService = State(initialValue: selectedBackend.createSSHService())
+        // Load backend preference first
+        let savedBackend = UserDefaults.standard.string(forKey: "SelectedSSHBackend") ?? "mock"
+        let backend = SSHBackend(rawValue: savedBackend) ?? .default
+        // Set the selectedBackend property first
+        self.selectedBackend = backend
+        // Initialize sshService with the selected backend
+        self._sshService = State(initialValue: backend.createSSHService())
     }
     
     enum ConnectionState {
