@@ -154,4 +154,8 @@ class RealSSHService: SSHService {
     func setHost(_ host: SSHHost) {
         self.currentHost = host
     }
+    
+    func setHost(_ host: SSHHost) {
+        self.currentHost = host
+    }
 }
