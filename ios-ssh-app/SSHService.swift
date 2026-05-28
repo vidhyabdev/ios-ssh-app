@@ -94,6 +94,7 @@ class MockSSHService: SSHService {
 enum SSHError: Error, LocalizedError {
     case notConnected
     case connectionFailed
+    case connectionFailedWithDetails(String)
     case commandExecutionFailed
     
     var errorDescription: String? {
@@ -102,6 +103,8 @@ enum SSHError: Error, LocalizedError {
             return "Not connected to SSH host"
         case .connectionFailed:
             return "Failed to connect to SSH host"
+        case .connectionFailedWithDetails(let details):
+            return details
         case .commandExecutionFailed:
             return "Failed to execute command on SSH host"
         }

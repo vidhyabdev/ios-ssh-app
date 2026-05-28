@@ -1,6 +1,7 @@
 import Foundation
 import Citadel
 import NIOCore
+import os.log
 
 /// Real implementation of SSHService that executes commands through actual SSH
 class RealSSHService: SSHService {
@@ -14,6 +15,15 @@ class RealSSHService: SSHService {
             throw SSHError.connectionFailed
         }
         
+        // Log connection details (without password)
+        os_log("Connecting to SSH host: %{public}@:%{public}@ as %{public}@ (password empty: %{public}@)", 
+               log: OSLog.shared, 
+               type: .debug,
+               host.hostname,
+               String(host.port),
+               host.username,
+               String(describing: (host.password ?? "").isEmpty))
+        
         // Create SSH client settings using Citadel
         let settings = SSHClientSettings(
             host: host.hostname,
@@ -24,9 +34,34 @@ class RealSSHService: SSHService {
         )
         
         // Connect to SSH server using Citadel
-        let client = try await SSHClient.connect(to: settings)
-        self.sshClient = client
-        isConnected = true
+        do {
+            let client = try await SSHClient.connect(to: settings)
+            self.sshClient = client
+            isConnected = true
+            
+            os_log("Successfully connected to SSH host: %{public}@:%{public}@ as %{public}@", 
+                   log: OSLog.shared, 
+                   type: .debug,
+                   host.hostname,
+                   String(host.port),
+                   host.username)
+        } catch Citadel.SSHClientError.error4 {
+            // Map Citadel.SSHClientError error 4 to user-friendly message
+            os_log("SSH connection failed with error 4: %{public}@", 
+                   log: OSLog.shared, 
+                   type: .error,
+                   "Authentication failed")
+            
+            throw SSHError.connectionFailedWithDetails("Authentication failed. Possible causes:\n• Wrong username/password\n• Password authentication disabled on server\n• Host unreachable\n• Unsupported host key/auth method")
+        } catch {
+            // Log other connection errors
+            os_log("SSH connection failed with error: %{public}@", 
+                   log: OSLog.shared, 
+                   type: .error,
+                   error.localizedDescription)
+            
+            throw error
+        }
     }
     
     func disconnect() {
