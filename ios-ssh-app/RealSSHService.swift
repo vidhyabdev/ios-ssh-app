@@ -1,7 +1,6 @@
 import Foundation
 import Citadel
 import NIOCore
-import os.log
 
 /// Real implementation of SSHService that executes commands through actual SSH
 class RealSSHService: SSHService {
@@ -16,13 +15,7 @@ class RealSSHService: SSHService {
         }
         
         // Log connection details (without password)
-        os_log("Connecting to SSH host: %{public}@:%{public}@ as %{public}@ (password empty: %{public}@)", 
-               log: OSLog.shared, 
-               type: .debug,
-               host.hostname,
-               String(host.port),
-               host.username,
-               String(describing: (host.password ?? "").isEmpty))
+        print("Connecting to SSH host: \(host.hostname):\(host.port) as \(host.username) (password empty: \((host.password ?? "").isEmpty))")
         
         // Create SSH client settings using Citadel
         let settings = SSHClientSettings(
@@ -39,45 +32,17 @@ class RealSSHService: SSHService {
             self.sshClient = client
             isConnected = true
             
-            os_log("Successfully connected to SSH host: %{public}@:%{public}@ as %{public}@", 
-                   log: OSLog.shared, 
-                   type: .debug,
-                   host.hostname,
-                   String(host.port),
-                   host.username)
-        } catch Citadel.SSHClientError.error4 {
-            // Map Citadel.SSHClientError error 4 to user-friendly message
-            os_log("SSH connection failed with error 4: %{public}@", 
-                   log: OSLog.shared, 
-                   type: .error,
-                   "Authentication failed")
-            
-            throw SSHError.connectionFailedWithDetails("Authentication failed. Possible causes:\n• Wrong username/password\n• Password authentication disabled on server\n• Host unreachable\n• Unsupported host key/auth method")
+            print("Successfully connected to SSH host: \(host.hostname):\(host.port) as \(host.username)")
         } catch {
-            // Log other connection errors with more detail
-            os_log("SSH connection failed with error: %{public}@", 
-                   log: OSLog.shared, 
-                   type: .error,
-                   error.localizedDescription)
-            
-            // Check if we can provide more specific error information
-            if let sshError = error as? Citadel.SSHClientError {
-                switch sshError {
-                case .error4:
-                    os_log("SSH connection failed with error 4: %{public}@", 
-                           log: OSLog.shared, 
-                           type: .error,
-                           "Authentication failed")
-                    throw SSHError.connectionFailedWithDetails("Authentication failed. Possible causes:\n• Wrong username/password\n• Password authentication disabled on server\n• Host unreachable\n• Unsupported host key/auth method")
-                default:
-                    os_log("SSH connection failed with Citadel error: %{public}@", 
-                           log: OSLog.shared, 
-                           type: .error,
-                           String(describing: sshError))
-                    throw SSHError.connectionFailedWithDetails("SSH connection failed with error: \(sshError.localizedDescription)")
-                }
+            // Handle specific error for authentication failure
+            if "\(error)".contains("error 4") || "\(error)".contains("Authentication failed") {
+                print("SSH connection failed with error 4: Authentication failed")
+                throw SSHError.connectionFailedWithDetails("Authentication failed. Possible causes:\n• Wrong username/password\n• Password authentication disabled on server\n• Host unreachable\n• Unsupported host key/auth method")
             } else {
-                throw error
+                // Log other connection errors with more detail
+                print("SSH connection failed with error: \(error.localizedDescription)")
+                
+                throw SSHError.connectionFailedWithDetails("SSH connection failed with error: \(error.localizedDescription)")
             }
         }
     }
