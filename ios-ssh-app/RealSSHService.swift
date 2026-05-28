@@ -1,44 +1,47 @@
 import Foundation
+import Citadel
 
 /// Real implementation of SSHService that executes commands through actual SSH
 class RealSSHService: SSHService {
     private var isConnected = false
     private var currentHost: SSHHost?
     private var cancellation: Task<Void, Never>? = nil
-    private var sshClient: Any? = nil // This would be the actual Citadel SSH client
+    private var sshClient: SSHClient? = nil // Actual Citadel SSH client
     
     func connect() async throws {
         guard let host = currentHost else {
             throw SSHError.connectionFailed
         }
         
-        // Connect to SSH server using host details
-        // This would use the actual Citadel SSH library in a real implementation
-        // Example implementation (this is what would actually be implemented):
-        /*
-        let sshClient = try CitadelSSHClient(
-            hostname: host.hostname,
-            port: host.port,
-            username: host.username,
-            password: host.password ?? ""
-        )
-        try await sshClient.connect()
-        self.sshClient = sshClient
-        isConnected = true
-        */
+        // Validate required host properties
+        guard let hostname = host.hostname, 
+              let username = host.username,
+              let password = host.password else {
+            throw SSHError.connectionFailed
+        }
         
-        // For now, simulate successful connection
-        // In a real implementation, this would establish a connection
+        // Create SSH client settings using Citadel
+        let settings = SSHClientSettings(
+            host: hostname,
+            authenticationMethod: {
+                .passwordBased(username: username, password: password)
+            },
+            hostKeyValidator: .acceptAnything()
+        )
+        
+        // Connect to SSH server using Citadel
+        let client = try await SSHClient.connect(to: settings)
+        self.sshClient = client
         isConnected = true
     }
     
     func disconnect() {
-        // Close the actual SSH connection
-        // In real implementation:
-        // sshClient.disconnect()
-        isConnected = false
+        // Cancel any running command
         cancellation?.cancel()
+        
+        // Close the SSH connection if client exists
         sshClient = nil
+        isConnected = false
     }
     
     func sendCommand(_ command: String) async throws -> String {
@@ -46,20 +49,18 @@ class RealSSHService: SSHService {
             throw SSHError.notConnected
         }
         
-        // Execute command on remote server and return actual stdout
-        // In real implementation:
-        /*
-        guard let sshClient = self.sshClient as? CitadelSSHClient else {
+        guard let client = sshClient else {
             throw SSHError.connectionFailed
         }
-        let result = try await sshClient.executeCommand(command)
-        return result.stdout
-        */
         
-        // For now, simulate command execution
-        // In a real implementation, this would execute the actual command
-        // and return the real stdout
-        throw SSHError.commandExecutionFailed
+        // Execute command on remote server and return actual stdout
+        let output = try await client.executeCommand(
+            command,
+            maxResponseSize: 1024 * 1024,
+            mergeStreams: true
+        )
+        
+        return output
     }
     
     func cancelCommand() {
@@ -77,20 +78,10 @@ class RealSSHService: SSHService {
         // Create a new cancellation task
         cancellation = Task {
             do {
-                // Stream real output from SSH server line by line
-                // In real implementation:
-                /*
-                guard let sshClient = self.sshClient as? CitadelSSHClient else {
-                    throw SSHError.connectionFailed
-                }
-                try await sshClient.executeCommandStreaming(command) { output in
-                    onOutput(output)
-                }
-                */
-                
-                // For now, simulate streaming output
-                // In a real implementation, this would stream actual server output
-                onOutput("Command execution failed: Not implemented\n")
+                // For now, call sendCommand and pass the full result to onOutput
+                // This avoids implementing streaming logic which wasn't required
+                let result = try await sendCommand(command)
+                onOutput(result)
             } catch {
                 onOutput("Command execution failed: \(error.localizedDescription)\n")
             }
