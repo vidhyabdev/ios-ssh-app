@@ -118,26 +118,38 @@ class RealSSHService: SSHService {
                     // Check if task was cancelled
                     if Task.isCancelled {
                         onOutput("Command cancelled")
-                        isExecutingCommand = false
+                        self.isExecutingCommand = false
                         return
                     }
                     
                     // Simulate delay between output lines to mimic real streaming
-                    try await Task.sleep(nanoseconds: 300_000_000) // 0.3 seconds
+                    do {
+                        try await Task.sleep(nanoseconds: 300_000_000) // 0.3 seconds
+                    } catch {
+                        // Handle sleep interruption gracefully
+                        self.isExecutingCommand = false
+                        return
+                    }
                     
                     // Send output
                     onOutput(output)
                 }
             } else {
                 // For non-streaming commands, execute normally
-                try await Task.sleep(nanoseconds: 500_000_000) // 0.5 second delay
+                do {
+                    try await Task.sleep(nanoseconds: 500_000_000) // 0.5 second delay
+                } catch {
+                    // Handle sleep interruption gracefully
+                    self.isExecutingCommand = false
+                    return
+                }
                 
                 // Return simulated response
                 let response = "Output for command: \(command)"
                 onOutput(response)
             }
             
-            isExecutingCommand = false
+            self.isExecutingCommand = false
         }
     }
     
