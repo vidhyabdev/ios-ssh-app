@@ -149,7 +149,6 @@ class RealSSHService: SSHService {
         // that the method returns properly and doesn't cause compilation issues
         // The streaming happens in the background task, and the method itself
         // should just return after starting the task
-        return
     }
     
     func setHost(_ host: SSHHost) {
