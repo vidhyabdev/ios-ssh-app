@@ -1,0 +1,6 @@
+Failed frontend command:
+Failed frontend command:
+/Users/vbalasubramaniyan/Desktop/Code/ios-ssh-app/Pods/NMSSH/NMSSH/Config/NMSSHLogger.m:54:14: warning: bitwise operation between different enumeration types ('NMSSHLogFlag' (aka 'enum NMSSHLogFlag') and 'NMSSHLogLevel' (aka 'enum NMSSHLogLevel')) [-Wenum-enum-conversion]
+/Users/vbalasubramaniyan/Desktop/Code/ios-ssh-app/Pods/Pods.xcodeproj: NMSSH: clang: error: linker command failed with exit code 1 (use -v to see invocation)
+** BUILD FAILED **
+The following build commands failed:

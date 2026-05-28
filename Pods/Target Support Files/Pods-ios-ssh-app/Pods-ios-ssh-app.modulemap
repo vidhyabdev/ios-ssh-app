@@ -1,0 +1,6 @@
+framework module Pods_ios_ssh_app {
+  umbrella header "Pods-ios-ssh-app-umbrella.h"
+
+  export *
+  module * { export * }
+}
