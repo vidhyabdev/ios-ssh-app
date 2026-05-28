@@ -92,12 +92,8 @@ class RealSSHService: SSHService {
         // Mark that we're executing a command
         isExecutingCommand = true
         
-        // Create a new cancellation task
-        cancellation = Task { [weak self] in
-            // This is where we'd integrate with a real SSH library to stream output
-            // For now, we'll simulate streaming behavior with a placeholder
-            // In a real implementation, this would use the actual SSH library to stream output
-            
+        // Create a new cancellation task - FIXED VERSION
+        cancellation = Task {
             // We'll create a simulated streaming for commands that would naturally stream
             // like ping, top, tail -f
             let streamingCommands = ["ping", "top", "tail -f"]
@@ -143,12 +139,6 @@ class RealSSHService: SSHService {
             
             isExecutingCommand = false
         }
-        
-        // Wait for the task to complete (but allow it to stream output incrementally)
-        // We don't need to await the task completion, but we need to make sure
-        // that the method returns properly and doesn't cause compilation issues
-        // The streaming happens in the background task, and the method itself
-        // should just return after starting the task
     }
     
     func setHost(_ host: SSHHost) {
