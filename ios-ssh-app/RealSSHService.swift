@@ -1,62 +1,41 @@
 import Foundation
-import Citadel
-import NIOCore
+import NMSSH
 
 /// Real implementation of SSHService that executes commands through actual SSH
 class RealSSHService: SSHService {
     private var isConnected = false
     private var currentHost: SSHHost?
-    private var cancellation: Task<Void, Never>? = nil
-    private var sshClient: SSHClient? = nil // Actual Citadel SSH client
+    private var session: NMSSHSession? = nil
     
     func connect() async throws {
         guard let host = currentHost else {
             throw SSHError.connectionFailed
         }
         
-        // Log connection details (without password)
-        print("Connecting to SSH host: \(host.hostname):\(host.port) as \(host.username) (password empty: \((host.password ?? "").isEmpty))")
+        // Create NMSSH session with host and port
+        let session = NMSSHSession.connect(toHost: "\(host.hostname):\(host.port)", withUsername: host.username)
         
-        // Create SSH client settings using Citadel
-        let settings = SSHClientSettings(
-            host: host.hostname,
-            authenticationMethod: {
-                .passwordBased(username: host.username, password: host.password ?? "")
-            },
-            hostKeyValidator: .acceptAnything()
-        )
+        // Authenticate with password
+        let isAuthenticated = session.authenticate(byPassword: host.password ?? "")
         
-        // Connect to SSH server using Citadel
-        do {
-            let client = try await SSHClient.connect(to: settings)
-            self.sshClient = client
+        // Check if connection and authentication were successful
+        if session.isConnected && session.isAuthorized {
+            self.session = session
             isConnected = true
-            
-            print("Successfully connected to SSH host: \(host.hostname):\(host.port) as \(host.username)")
-        } catch let sshError as Citadel.SSHClientError {
-            // Handle specific Citadel SSH client errors
-            // Check if it's an authentication failure by examining the error description
-            let errorDescription = sshError.localizedDescription
-            if errorDescription.contains("error 4") || errorDescription.contains("Authentication failed") {
-                print("SSH connection failed with error 4: Authentication failed")
-                throw SSHError.connectionFailedWithDetails("Authentication failed. Possible causes:\n• Wrong username/password\n• Password authentication disabled on server\n• Host unreachable\n• Unsupported host key/auth method")
-            } else {
-                print("SSH connection failed with Citadel error: \(sshError)")
-                throw SSHError.connectionFailedWithDetails("SSH connection failed with error: \(sshError.localizedDescription)")
+        } else {
+            // Handle connection/authentication failure
+            if !session.isConnected {
+                throw SSHError.connectionFailedWithDetails("Failed to establish SSH connection to \(host.hostname):\(host.port)")
+            } else if !session.isAuthorized {
+                throw SSHError.connectionFailedWithDetails("Authentication failed for user \(host.username) on \(host.hostname):\(host.port)")
             }
-        } catch {
-            // Handle other connection errors
-            print("SSH connection failed with error: \(error.localizedDescription)")
-            throw SSHError.connectionFailedWithDetails("SSH connection failed with error: \(error.localizedDescription)")
         }
     }
     
     func disconnect() {
-        // Cancel any running command
-        cancellation?.cancel()
-        
-        // Close the SSH connection if client exists
-        sshClient = nil
+        // Disconnect the NMSSH session if it exists
+        session?.disconnect()
+        session = nil
         isConnected = false
     }
     
@@ -65,44 +44,28 @@ class RealSSHService: SSHService {
             throw SSHError.notConnected
         }
         
-        guard let client = sshClient else {
+        guard let session = session else {
             throw SSHError.connectionFailed
         }
         
-        // Execute command on remote server and return actual stdout
-        let output = try await client.executeCommand(
-            command,
-            maxResponseSize: 1024 * 1024,
-            mergeStreams: true
-        )
+        // Execute command on remote server
+        var error: NSError?
+        let output = session.channel.execute(command, error: &error)
         
-        // Convert ByteBuffer to String
-        return String(decoding: output.readableBytesView, as: UTF8.self)
-    }
-    
-    func cancelCommand() {
-        cancellation?.cancel()
+        // Check for execution errors
+        if let error = error {
+            throw SSHError.commandExecutionFailed
+        }
+        
+        // Return the command output
+        return output ?? ""
     }
     
     func sendCommandStreaming(_ command: String, onOutput: @escaping (String) -> Void) async throws {
-        guard isConnected else {
-            throw SSHError.notConnected
-        }
-        
-        // Cancel any previous command
-        cancellation?.cancel()
-        
-        // Create a new cancellation task
-        cancellation = Task {
-            do {
-                // For now, call sendCommand and pass the full result to onOutput
-                // This avoids implementing streaming logic which wasn't required
-                let result = try await sendCommand(command)
-                onOutput(result)
-            } catch {
-                onOutput("Command execution failed: \(error.localizedDescription)\n")
-            }
-        }
+        // For now, call sendCommand and pass the full result to onOutput
+        // This avoids implementing streaming logic which wasn't required
+        let result = try await sendCommand(command)
+        onOutput(result)
     }
     
     func setHost(_ host: SSHHost) {
