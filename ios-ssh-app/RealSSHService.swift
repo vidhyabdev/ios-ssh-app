@@ -2,7 +2,7 @@ import Foundation
 import NMSSH
 
 /// Real implementation of SSHService that executes commands through actual SSH
-class RealSSHService: SSHService {
+class RealSSHService: NSObject {
     private var isConnected = false
     private var currentHost: SSHHost?
     private var session: NMSSHSession? = nil
@@ -15,8 +15,12 @@ class RealSSHService: SSHService {
         // Create NMSSH session with host and port
         let session = NMSSHSession.connect(toHost: "\(host.hostname):\(host.port)", withUsername: host.username)
         
-        // Set up host key verification delegate
-        session.delegate = self
+        // Check connection status
+        if !session.isConnected {
+            // Try to connect with a timeout approach
+            // NMSSH has a connect method that returns a session, but we should check for connection errors
+            throw SSHError.connectionFailedWithDetails("Failed to establish SSH connection to \(host.hostname):\(host.port). Please check host connectivity.")
+        }
         
         // Authenticate with password
         let authResult = session.authenticate(byPassword: host.password ?? "")
@@ -28,20 +32,10 @@ class RealSSHService: SSHService {
         } else {
             // Handle connection/authentication failure with more specific errors
             if !session.isConnected {
-                // Check for specific connection issues
-                if session.connectionError != nil {
-                    if session.connectionError!.localizedDescription.contains("timed out") {
-                        throw SSHError.timeout
-                    } else if session.connectionError!.localizedDescription.contains("unreachable") {
-                        throw SSHError.hostUnreachable
-                    } else {
-                        throw SSHError.connectionFailedWithDetails("Failed to establish SSH connection to \(host.hostname):\(host.port). Connection error: \(session.connectionError!.localizedDescription)")
-                    }
-                } else {
-                    throw SSHError.connectionFailedWithDetails("Failed to establish SSH connection to \(host.hostname):\(host.port)")
-                }
+                // Connection failed
+                throw SSHError.connectionFailedWithDetails("Failed to establish SSH connection to \(host.hostname):\(host.port)")
             } else if !session.isAuthorized {
-                // Check for authentication failure reason
+                // Authentication failed
                 if authResult == false {
                     // NMSSH authentication failure
                     throw SSHError.authenticationFailed
@@ -88,22 +82,5 @@ class RealSSHService: SSHService {
     
     func cancelCommand() {
         // Not implemented in this basic version - can be extended later if needed
-    }
-}
-
-// MARK: - NMSSHSessionDelegate
-extension RealSSHService: NMSSHSessionDelegate {
-    func session(_ session: NMSSHSession, didReceiveHostKey key: String) {
-        // This delegate method is called when host key is received
-        // We could implement trust-on-first-use logic here if needed
-        // For now, we'll let NMSSH handle it according to its default behavior
-    }
-    
-    func session(_ session: NMSSHSession, didReceiveAuthenticationBanner banner: String) {
-        // Handle authentication banners if needed
-    }
-    
-    func sessionDidDisconnect(_ session: NMSSHSession) {
-        // Handle disconnection
     }
 }
