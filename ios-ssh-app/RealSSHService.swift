@@ -13,18 +13,18 @@ class RealSSHService: SSHService {
             throw SSHError.connectionFailed
         }
         
-        // Validate required host properties
-        guard let hostname = host.hostname, 
-              let username = host.username,
-              let password = host.password else {
+        // Validate required host properties (assuming they are non-optional)
+        guard host.hostname != nil && 
+              host.username != nil &&
+              host.password != nil else {
             throw SSHError.connectionFailed
         }
         
         // Create SSH client settings using Citadel
         let settings = SSHClientSettings(
-            host: hostname,
+            host: host.hostname!,
             authenticationMethod: {
-                .passwordBased(username: username, password: password)
+                .passwordBased(username: host.username!, password: host.password!)
             },
             hostKeyValidator: .acceptAnything()
         )
@@ -60,7 +60,8 @@ class RealSSHService: SSHService {
             mergeStreams: true
         )
         
-        return output
+        // Convert ByteBuffer to String (assuming executeCommand returns ByteBuffer)
+        return String(buffer: output)
     }
     
     func cancelCommand() {
