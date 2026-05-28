@@ -7,16 +7,22 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		49A4C5B27F0A31F6CC8BAA4F /* Pods_ios_ssh_app.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A31BA134E0EFD9231738572F /* Pods_ios_ssh_app.framework */; };
 		73CB8FFC2FC783FD00E16A30 /* Citadel in Frameworks */ = {isa = PBXBuildFile; productRef = 73CB8FFB2FC783FD00E16A30 /* Citadel */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		73961AAB2FC7694800B0363E /* ios-ssh-app.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "ios-ssh-app.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		A31BA134E0EFD9231738572F /* Pods_ios_ssh_app.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_ios_ssh_app.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		B658063365A14CCCD16BD54C /* Pods-ios-ssh-app.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-ios-ssh-app.debug.xcconfig"; path = "Target Support Files/Pods-ios-ssh-app/Pods-ios-ssh-app.debug.xcconfig"; sourceTree = "<group>"; };
+		BC7A53A443A557360CB94556 /* Pods-ios-ssh-app.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-ios-ssh-app.release.xcconfig"; path = "Target Support Files/Pods-ios-ssh-app/Pods-ios-ssh-app.release.xcconfig"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		73961AAD2FC7694800B0363E /* ios-ssh-app */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
 			path = "ios-ssh-app";
 			sourceTree = "<group>";
 		};
@@ -28,17 +34,28 @@
 			buildActionMask = 2147483647;
 			files = (
 				73CB8FFC2FC783FD00E16A30 /* Citadel in Frameworks */,
+				49A4C5B27F0A31F6CC8BAA4F /* Pods_ios_ssh_app.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		43230B08C8FA7BF7AB85D041 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				A31BA134E0EFD9231738572F /* Pods_ios_ssh_app.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		73961AA22FC7694800B0363E = {
 			isa = PBXGroup;
 			children = (
 				73961AAD2FC7694800B0363E /* ios-ssh-app */,
 				73961AAC2FC7694800B0363E /* Products */,
+				FEC0A72351D168CFE42F33E1 /* Pods */,
+				43230B08C8FA7BF7AB85D041 /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
@@ -50,6 +67,16 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		FEC0A72351D168CFE42F33E1 /* Pods */ = {
+			isa = PBXGroup;
+			children = (
+				B658063365A14CCCD16BD54C /* Pods-ios-ssh-app.debug.xcconfig */,
+				BC7A53A443A557360CB94556 /* Pods-ios-ssh-app.release.xcconfig */,
+			);
+			name = Pods;
+			path = Pods;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -57,9 +84,11 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 73961AB62FC7694A00B0363E /* Build configuration list for PBXNativeTarget "ios-ssh-app" */;
 			buildPhases = (
+				35157DFAC1439D7339AEE654 /* [CP] Check Pods Manifest.lock */,
 				73961AA72FC7694800B0363E /* Sources */,
 				73961AA82FC7694800B0363E /* Frameworks */,
 				73961AA92FC7694800B0363E /* Resources */,
+				7F7A30048E6F4C67944F780E /* [CP] Embed Pods Frameworks */,
 			);
 			buildRules = (
 			);
@@ -123,6 +152,48 @@
 		};
 /* End PBXResourcesBuildPhase section */
 
+/* Begin PBXShellScriptBuildPhase section */
+		35157DFAC1439D7339AEE654 /* [CP] Check Pods Manifest.lock */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"${PODS_PODFILE_DIR_PATH}/Podfile.lock",
+				"${PODS_ROOT}/Manifest.lock",
+			);
+			name = "[CP] Check Pods Manifest.lock";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(DERIVED_FILE_DIR)/Pods-ios-ssh-app-checkManifestLockResult.txt",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
+			showEnvVarsInLog = 0;
+		};
+		7F7A30048E6F4C67944F780E /* [CP] Embed Pods Frameworks */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-ios-ssh-app/Pods-ios-ssh-app-frameworks-${CONFIGURATION}-input-files.xcfilelist",
+			);
+			name = "[CP] Embed Pods Frameworks";
+			outputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-ios-ssh-app/Pods-ios-ssh-app-frameworks-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-ios-ssh-app/Pods-ios-ssh-app-frameworks.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
+/* End PBXShellScriptBuildPhase section */
+
 /* Begin PBXSourcesBuildPhase section */
 		73961AA72FC7694800B0363E /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
@@ -172,7 +243,7 @@
 				DEVELOPMENT_TEAM = TH5X77C9UL;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_NO_COMMON_BLOCKS = YES;
@@ -236,7 +307,7 @@
 				DEVELOPMENT_TEAM = TH5X77C9UL;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
@@ -257,6 +328,7 @@
 		};
 		73961AB72FC7694A00B0363E /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = B658063365A14CCCD16BD54C /* Pods-ios-ssh-app.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -289,6 +361,7 @@
 		};
 		73961AB82FC7694A00B0363E /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = BC7A53A443A557360CB94556 /* Pods-ios-ssh-app.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
