@@ -1,53 +1,39 @@
 import Foundation
-import NMSSH
+import Citadel
 
 /// Real implementation of SSHService that executes commands through actual SSH
 class RealSSHService: NSObject, SSHService {
     private var isConnected = false
     private var currentHost: SSHHost?
-    private var session: NMSSHSession? = nil
+    private var session: Citadel.Session? = nil
     
     func connect() async throws {
         guard let host = currentHost else {
             throw SSHError.connectionFailed
         }
         
-        // Create NMSSH session with host and port
-        let session = NMSSHSession.connect(toHost: "\(host.hostname):\(host.port)", withUsername: host.username)
+        // Create Citadel session with host and port
+        session = Citadel.Session(host: host.hostname, port: Int32(host.port))
         
-        // Check connection status
-        if !session.isConnected {
-            // Try to connect with a timeout approach
-            // NMSSH has a connect method that returns a session, but we should check for connection errors
-            throw SSHError.connectionFailedWithDetails("Failed to establish SSH connection to \(host.hostname):\(host.port). Please check host connectivity.")
-        }
-        
-        // Authenticate with password
-        let authResult = session.authenticate(byPassword: host.password ?? "")
-        
-        // Check if connection and authentication were successful
-        if session.isConnected && session.isAuthorized {
-            self.session = session
+        do {
+            // Connect to the server
+            try session?.connect()
+            
+            // Authenticate with password
+            try session?.authenticate(username: host.username, password: host.password ?? "")
+            
+            // Check if connection and authentication were successful
             isConnected = true
-        } else {
-            // Handle connection/authentication failure with more specific errors
-            if !session.isConnected {
-                // Connection failed
-                throw SSHError.connectionFailedWithDetails("Failed to establish SSH connection to \(host.hostname):\(host.port)")
-            } else if !session.isAuthorized {
-                // Authentication failed
-                if authResult == false {
-                    // NMSSH authentication failure
-                    throw SSHError.authenticationFailed
-                } else {
-                    throw SSHError.connectionFailedWithDetails("Authentication failed for user \(host.username) on \(host.hostname):\(host.port)")
-                }
-            }
+        } catch {
+            // Handle connection/authentication failure
+            isConnected = false
+            session = nil
+            throw error
         }
     }
     
     func disconnect() {
-        // Disconnect the NMSSH session if it exists
+        // Disconnect the Citadel session if it exists
         session?.disconnect()
         session = nil
         isConnected = false
@@ -63,10 +49,12 @@ class RealSSHService: NSObject, SSHService {
         }
         
         // Execute command on remote server
-        let output = session.channel.execute(command, error: nil)
-        
-        // Return the command output
-        return output
+        do {
+            let output = try await session.execute(command)
+            return output
+        } catch {
+            throw SSHError.commandExecutionFailed
+        }
     }
     
     func sendCommandStreaming(_ command: String, onOutput: @escaping (String) -> Void) async throws {
