@@ -7,16 +7,22 @@ class RealSSHService: NSObject, SSHService {
     private var isConnected = false
     private var currentHost: SSHHost?
     private var client: SSHClient? = nil
+    private let keychainService = KeychainService.shared
     
     func connect() async throws {
         guard let host = currentHost else {
             throw SSHError.connectionFailed
         }
         
+        // Retrieve password from Keychain
+        guard let password = keychainService.getPassword(forHost: host) else {
+            throw SSHError.passwordNotFound
+        }
+        
         // Create SSHClientSettings with host and password authentication
         let settings = SSHClientSettings(
             host: host.hostname,
-            authenticationMethod: { .passwordBased(username: host.username, password: host.password ?? "") },
+            authenticationMethod: { .passwordBased(username: host.username, password: password) },
             hostKeyValidator: .acceptAnything()
         )
         

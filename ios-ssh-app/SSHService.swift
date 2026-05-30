@@ -109,6 +109,7 @@ enum SSHError: Error, LocalizedError {
     case timeout
     case sshHandshakeFailed
     case commandExecutionFailed
+    case passwordNotFound
     
     var errorDescription: String? {
         switch self {
@@ -130,6 +131,8 @@ enum SSHError: Error, LocalizedError {
             return "SSH handshake failed"
         case .commandExecutionFailed:
             return "Failed to execute command on SSH host"
+        case .passwordNotFound:
+            return "Password not found for SSH host. Please update the host with a password."
         }
     }
 }

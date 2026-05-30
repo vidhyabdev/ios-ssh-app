@@ -12,7 +12,7 @@ struct AddHostView: View {
     @State private var hostname = ""
     @State private var username = ""
     @State private var port = "22"
-    @State private var password = "" // Temporary password field for SSH testing
+    @State private var password = "" // Password will be stored in Keychain
     
     @Environment(\.presentationMode) var presentationMode
     @ObservedObject var hostManager: HostManager
@@ -30,15 +30,23 @@ struct AddHostView: View {
                     TextField("Username", text: $username)
                     TextField("Port", text: $port)
                         .keyboardType(.numberPad)
-                    SecureField("Password (Optional)", text: $password) // Temporary password field for SSH testing
+                    SecureField("Password (Optional)", text: $password)
                 }
                 
                 Section {
                     Button("Save") {
                         // Create and add the new host to the list
                         if let portInt = Int(port) {
-                            let newHost = SSHHost(hostName: hostName, hostname: hostname, username: username, port: portInt, password: password.isEmpty ? nil : password)
+                            let newHost = SSHHost(hostName: hostName, hostname: hostname, username: username, port: portInt)
+                            
+                            // Add host to list
                             hostManager.addHost(newHost)
+                            
+                            // Save password to Keychain if provided
+                            if !password.isEmpty {
+                                hostManager.setHostPassword(password, for: newHost)
+                            }
+                            
                             presentationMode.wrappedValue.dismiss()
                         }
                     }

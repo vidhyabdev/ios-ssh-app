@@ -12,7 +12,7 @@ struct EditHostView: View {
     @State private var hostname = ""
     @State private var username = ""
     @State private var port = "22"
-    @State private var password = "" // Temporary password field for SSH testing
+    @State private var password = "" // Password will be stored in Keychain
     
     @Environment(\.presentationMode) var presentationMode
     @ObservedObject var hostManager: HostManager
@@ -27,7 +27,8 @@ struct EditHostView: View {
         _hostname = State(initialValue: hostToEdit.hostname)
         _username = State(initialValue: hostToEdit.username)
         _port = State(initialValue: "\(hostToEdit.port)")
-        _password = State(initialValue: hostToEdit.password ?? "") // Initialize with existing password
+        // Initialize password from Keychain
+        _password = State(initialValue: hostManager.getHostPassword(for: hostToEdit) ?? "")
     }
     
     var body: some View {
@@ -38,18 +39,23 @@ struct EditHostView: View {
                 TextField("Username", text: $username)
                 TextField("Port", text: $port)
                     .keyboardType(.numberPad)
-                SecureField("Password (Optional)", text: $password) // Temporary password field for SSH testing
+                SecureField("Password (Optional)", text: $password)
             }
             
             Section {
                 Button("Update") {
                     if let portInt = Int(port) {
-                        let updatedHost = SSHHost(hostName: hostName, hostname: hostname, username: username, port: portInt, password: password.isEmpty ? nil : password)
-                        
-                        // Find and replace the host in the array
+                        // Update host in array
                         if let index = hostManager.hosts.firstIndex(where: { $0.id == hostToEdit.id }) {
+                            let updatedHost = SSHHost(hostName: hostName, hostname: hostname, username: username, port: portInt)
                             hostManager.hosts[index] = updatedHost
                             hostManager.saveHosts()
+                            
+                            // Update password in Keychain if provided
+                            if !password.isEmpty {
+                                hostManager.updateHostPassword(password, for: updatedHost)
+                            }
+                            
                             presentationMode.wrappedValue.dismiss()
                         }
                     }
@@ -59,11 +65,8 @@ struct EditHostView: View {
             
             Section {
                 Button("Delete") {
-                    if let index = hostManager.hosts.firstIndex(where: { $0.id == hostToEdit.id }) {
-                        hostManager.hosts.remove(at: index)
-                        hostManager.saveHosts()
-                        presentationMode.wrappedValue.dismiss()
-                    }
+                    hostManager.deleteHost(hostToEdit)
+                    presentationMode.wrappedValue.dismiss()
                 }
                 .foregroundColor(.red)
             }
