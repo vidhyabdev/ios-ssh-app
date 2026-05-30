@@ -1,5 +1,6 @@
 import Foundation
 import Citadel
+import NIOCore
 
 /// Real implementation of SSHService that executes commands through actual SSH
 class RealSSHService: NSObject, SSHService {
