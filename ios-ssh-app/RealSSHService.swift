@@ -5,37 +5,35 @@ import Citadel
 class RealSSHService: NSObject, SSHService {
     private var isConnected = false
     private var currentHost: SSHHost?
-    private var session: Citadel.Session? = nil
+    private var client: SSHClient? = nil
     
     func connect() async throws {
         guard let host = currentHost else {
             throw SSHError.connectionFailed
         }
         
-        // Create Citadel session with host and port
-        session = Citadel.Session(host: host.hostname, port: Int32(host.port))
+        // Create SSHClientSettings with host and password authentication
+        let settings = SSHClientSettings(
+            host: host.hostname,
+            authenticationMethod: { .passwordBased(username: host.username, password: host.password ?? "") },
+            hostKeyValidator: .acceptAnything()
+        )
         
         do {
             // Connect to the server
-            try session?.connect()
-            
-            // Authenticate with password
-            try session?.authenticate(username: host.username, password: host.password ?? "")
-            
-            // Check if connection and authentication were successful
+            client = try await SSHClient.connect(to: settings)
             isConnected = true
         } catch {
             // Handle connection/authentication failure
             isConnected = false
-            session = nil
+            client = nil
             throw error
         }
     }
     
     func disconnect() {
-        // Disconnect the Citadel session if it exists
-        session?.disconnect()
-        session = nil
+        // Disconnect the SSHClient if it exists
+        client = nil
         isConnected = false
     }
     
@@ -44,13 +42,13 @@ class RealSSHService: NSObject, SSHService {
             throw SSHError.notConnected
         }
         
-        guard let session = session else {
+        guard let client = client else {
             throw SSHError.connectionFailed
         }
         
         // Execute command on remote server
         do {
-            let output = try await session.execute(command)
+            let output = try await client.executeCommand(command)
             return output
         } catch {
             throw SSHError.commandExecutionFailed
