@@ -2,7 +2,6 @@ platform :ios, '13.0'
 
 target 'ios-ssh-app' do
   use_frameworks!
-  pod 'NMSSH'
 
   post_install do |installer|
     installer.pods_project.targets.each do |target|
