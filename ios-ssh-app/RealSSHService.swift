@@ -49,7 +49,9 @@ class RealSSHService: NSObject, SSHService {
         // Execute command on remote server
         do {
             let output = try await client.executeCommand(command)
-            return output
+            // ByteBuffer to String conversion
+            let stringOutput = String(decoding: output.readableBytesView, as: UTF8.self)
+            return stringOutput
         } catch {
             throw SSHError.commandExecutionFailed
         }
