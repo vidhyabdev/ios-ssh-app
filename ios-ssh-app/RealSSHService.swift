@@ -20,8 +20,10 @@ class RealSSHService: NSObject, SSHService {
         }
         
         // Create SSHClientSettings with host and password authentication
+        // Citadel SSHClient expects host:port format in the host parameter
+        let hostWithPort = "\(host.hostname):\(host.port)"
         let settings = SSHClientSettings(
-            host: host.hostname,
+            host: hostWithPort,
             authenticationMethod: { .passwordBased(username: host.username, password: password) },
             hostKeyValidator: .acceptAnything()
         )
