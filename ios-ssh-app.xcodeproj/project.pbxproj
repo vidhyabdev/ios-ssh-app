@@ -7,15 +7,11 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		307349EDB32CF696DA77816F /* Pods_ios_ssh_app.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C3455D4B9D68F364EE6D24C3 /* Pods_ios_ssh_app.framework */; };
 		73CB8FFC2FC783FD00E16A30 /* Citadel in Frameworks */ = {isa = PBXBuildFile; productRef = 73CB8FFB2FC783FD00E16A30 /* Citadel */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		73961AAB2FC7694800B0363E /* ios-ssh-app.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "ios-ssh-app.app"; sourceTree = BUILT_PRODUCTS_DIR; };
-		81A36453AFE2A5FF4BAA57FB /* Pods-ios-ssh-app.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-ios-ssh-app.release.xcconfig"; path = "Target Support Files/Pods-ios-ssh-app/Pods-ios-ssh-app.release.xcconfig"; sourceTree = "<group>"; };
-		A04B9BABC13AF84B842F6C9A /* Pods-ios-ssh-app.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-ios-ssh-app.debug.xcconfig"; path = "Target Support Files/Pods-ios-ssh-app/Pods-ios-ssh-app.debug.xcconfig"; sourceTree = "<group>"; };
-		C3455D4B9D68F364EE6D24C3 /* Pods_ios_ssh_app.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_ios_ssh_app.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -34,30 +30,17 @@
 			buildActionMask = 2147483647;
 			files = (
 				73CB8FFC2FC783FD00E16A30 /* Citadel in Frameworks */,
-				307349EDB32CF696DA77816F /* Pods_ios_ssh_app.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		05828DD7CC8C6711388BDA4C /* Pods */ = {
-			isa = PBXGroup;
-			children = (
-				A04B9BABC13AF84B842F6C9A /* Pods-ios-ssh-app.debug.xcconfig */,
-				81A36453AFE2A5FF4BAA57FB /* Pods-ios-ssh-app.release.xcconfig */,
-			);
-			name = Pods;
-			path = Pods;
-			sourceTree = "<group>";
-		};
 		73961AA22FC7694800B0363E = {
 			isa = PBXGroup;
 			children = (
 				73961AAD2FC7694800B0363E /* ios-ssh-app */,
 				73961AAC2FC7694800B0363E /* Products */,
-				05828DD7CC8C6711388BDA4C /* Pods */,
-				A2B5E85843238553CBBE7DF2 /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
@@ -69,14 +52,6 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
-		A2B5E85843238553CBBE7DF2 /* Frameworks */ = {
-			isa = PBXGroup;
-			children = (
-				C3455D4B9D68F364EE6D24C3 /* Pods_ios_ssh_app.framework */,
-			);
-			name = Frameworks;
-			sourceTree = "<group>";
-		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -84,7 +59,6 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 73961AB62FC7694A00B0363E /* Build configuration list for PBXNativeTarget "ios-ssh-app" */;
 			buildPhases = (
-				C8C23F45190F3132E5D53B14 /* [CP] Check Pods Manifest.lock */,
 				73961AA72FC7694800B0363E /* Sources */,
 				73961AA82FC7694800B0363E /* Frameworks */,
 				73961AA92FC7694800B0363E /* Resources */,
@@ -150,31 +124,6 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
-
-/* Begin PBXShellScriptBuildPhase section */
-		C8C23F45190F3132E5D53B14 /* [CP] Check Pods Manifest.lock */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-				"${PODS_PODFILE_DIR_PATH}/Podfile.lock",
-				"${PODS_ROOT}/Manifest.lock",
-			);
-			name = "[CP] Check Pods Manifest.lock";
-			outputFileListPaths = (
-			);
-			outputPaths = (
-				"$(DERIVED_FILE_DIR)/Pods-ios-ssh-app-checkManifestLockResult.txt",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
-			showEnvVarsInLog = 0;
-		};
-/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		73961AA72FC7694800B0363E /* Sources */ = {
@@ -310,7 +259,6 @@
 		};
 		73961AB72FC7694A00B0363E /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = A04B9BABC13AF84B842F6C9A /* Pods-ios-ssh-app.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -343,7 +291,6 @@
 		};
 		73961AB82FC7694A00B0363E /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 81A36453AFE2A5FF4BAA57FB /* Pods-ios-ssh-app.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
