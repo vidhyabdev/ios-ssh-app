@@ -21,3 +21,4 @@ Pods/
 # Local Xcode build logs
 xcodebuild*.log
 xcodebuild-errors.txt
+xcodebuild-device-errors.txt
