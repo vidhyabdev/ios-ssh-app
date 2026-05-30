@@ -17,3 +17,7 @@ xcodebuild-errors.txt
 
 # CocoaPods generated files
 Pods/
+
+# Local Xcode build logs
+xcodebuild*.log
+xcodebuild-errors.txt
