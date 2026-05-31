@@ -63,12 +63,11 @@ struct FingerprintTrustView: View {
                     }
                     .buttonStyle(.bordered)
                     
-                    Button("Trust")
-                        .disabled(!trustHost)
-                        .buttonStyle(.borderedProminent)
-                        .onTapGesture {
-                            isPresented = false
-                        }
+                    Button("Trust") {
+                        isPresented = false
+                    }
+                    .disabled(!trustHost)
+                    .buttonStyle(.borderedProminent)
                     
                     Spacer()
                 }
