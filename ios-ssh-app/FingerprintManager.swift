@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import Combine
 
 /// Manages SSH host fingerprint verification for trust-on-first-use behavior
 class FingerprintManager: ObservableObject {
