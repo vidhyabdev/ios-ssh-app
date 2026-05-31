@@ -136,6 +136,17 @@ class RealSSHService: NSObject, SSHService {
                 print("[RealSSHService] NIOCore.ChannelError detected")
             } else if error.domain == "NIOPosix.NIOConnectionError" {
                 print("[RealSSHService] NIOPosix.NIOConnectionError detected")
+            } else if error.domain == "Citadel.SSHClientError" {
+                // Citadel-specific error
+                print("[RealSSHService] Citadel.SSHClientError detected")
+                print("[RealSSHService] Error code \(error.code) details:")
+                
+                // Error code 4 in Citadel typically means connection-related issue
+                if error.code == 4 {
+                    print("[RealSSHService] Connection failed - check network connectivity")
+                    print("[RealSSHService] Verify host is reachable at \(host.hostname):\(host.port)")
+                    print("[RealSSHService] Ensure port 22 (SSH) is open on the host")
+                }
             }
             
             // Reset state on failure
