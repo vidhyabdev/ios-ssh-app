@@ -10,18 +10,31 @@ class RealSSHService: NSObject, SSHService {
     private let keychainService = KeychainService.shared
     
     func connect() async throws {
+        print("[RealSSHService] ====== CONNECT DIAGNOSTICS ======")
         guard let host = currentHost else {
+            print("[RealSSHService] Error: No current host set")
             throw SSHError.connectionFailed
         }
         
+        print("[RealSSHService] Host: \(host.hostName)")
+        print("[RealSSHService] Hostname: \(host.hostname)")
+        print("[RealSSHService] Port: \(host.port)")
+        print("[RealSSHService] Username: \(host.username)")
+        
         // Retrieve password from Keychain
         guard let password = keychainService.getPassword(forHost: host) else {
+            print("[RealSSHService] Error: Password not found in Keychain")
             throw SSHError.passwordNotFound
         }
+        
+        print("[RealSSHService] Password found: true")
+        print("[RealSSHService] Password length: \(password.count) chars")
         
         // Create SSHClientSettings with host and password authentication
         // Citadel SSHClient expects host:port format in the host parameter
         let hostWithPort = "\(host.hostname):\(host.port)"
+        print("[RealSSHService] Connection target: \(hostWithPort)")
+        
         let settings = SSHClientSettings(
             host: hostWithPort,
             authenticationMethod: { .passwordBased(username: host.username, password: password) },
@@ -30,10 +43,34 @@ class RealSSHService: NSObject, SSHService {
         
         do {
             // Connect to the server
+            print("[RealSSHService] Calling SSHClient.connect(to: settings)...")
             client = try await SSHClient.connect(to: settings)
             isConnected = true
-        } catch {
+            print("[RealSSHService] Connection successful!")
+        } catch let error as NSError {
+            // Handle connection/authentication failure with detailed error info
+            print("[RealSSHService] Connection failed with NSError")
+            print("[RealSSHService] Error domain: \(error.domain)")
+            print("[RealSSHService] Error code: \(error.code)")
+            print("[RealSSHService] Error userInfo: \(error.userInfo)")
+            
+            // Check if it's a Citadel/NIO error
+            if error.domain == "NIOCore.ChannelError" {
+                print("[RealSSHService] NIOCore.ChannelError detected")
+            } else if error.domain == "NIOPosix.NIOConnectionError" {
+                print("[RealSSHService] NIOPosix.NIOConnectionError detected")
+            }
+            
             // Handle connection/authentication failure
+            isConnected = false
+            client = nil
+            throw error
+        } catch {
+            // Handle other errors
+            print("[RealSSHService] Connection failed with unknown error")
+            print("[RealSSHService] Error type: \(type(of: error))")
+            print("[RealSSHService] Error description: \(error.localizedDescription)")
+            
             isConnected = false
             client = nil
             throw error
