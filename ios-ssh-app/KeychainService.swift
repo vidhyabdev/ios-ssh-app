@@ -16,9 +16,9 @@ class KeychainService {
     
     /// Generates a stable identifier for a host's password
     private func makeKeychainIdentifier(host: SSHHost) -> String {
-        // Use a combination of hostname and username as the identifier
-        // This ensures we can uniquely identify and update passwords
-        return "\(host.hostname):\(host.username):\(host.port)"
+        // Use the host.id for the identifier - this ensures the password
+        // stays associated with the host even if hostname, username, or port changes
+        return "ssh_password_\(host.id.uuidString)"
     }
     
     /// Save a password to the Keychain for a given host

@@ -27,9 +27,6 @@ class RealSSHService: NSObject, SSHService {
             throw SSHError.passwordNotFound
         }
         
-        print("[RealSSHService] Password found: true")
-        print("[RealSSHService] Password length: \(password.count) chars")
-        
         // Create SSHClientSettings with host and password authentication
         // Citadel SSHClient uses default SSH port (22) if not specified
         print("[RealSSHService] Connection target: \(host.hostname)")
