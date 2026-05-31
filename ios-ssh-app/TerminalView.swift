@@ -112,38 +112,58 @@ struct TerminalView: View {
                 }
             }
             
-            // Command input area
-            HStack {
-                 TextField("Enter command...", text: $commandInput)
-                     .textFieldStyle(RoundedBorderTextFieldStyle())
+             // Command input area
+             HStack {
+                  TextField("Enter command...", text: $commandInput)
+                      .textFieldStyle(RoundedBorderTextFieldStyle())
+                      .font(getFont(for: selectedFontSize, size: 14))
+                      .autocapitalization(.none)
+                      .autocorrectionDisabled(true)
+                      .disabled(connectionState != .connected || isCommandRunning)
+                 
+                 Button("Clear") {
+                     clearTerminal()
+                 }
+                 .buttonStyle(.bordered)
+                 .font(getFont(for: selectedFontSize, size: 14))
+                 .disabled(terminalOutput.isEmpty)
+                 
+                 Button("Copy") {
+                     copyToClipboard()
+                 }
+                 .buttonStyle(.bordered)
+                 .font(getFont(for: selectedFontSize, size: 14))
+                 .disabled(terminalOutput.isEmpty)
+                 
+                 Button("Paste") {
+                     pasteFromClipboard()
+                 }
+                 .buttonStyle(.bordered)
+                 .font(getFont(for: selectedFontSize, size: 14))
+                 
+                 Button("History") {
+                     showHistory = true
+                 }
+                 .buttonStyle(.bordered)
+                 .font(getFont(for: selectedFontSize, size: 14))
+                 .disabled(connectionState != .connected || isCommandRunning)
+                 
+                 if isCommandRunning {
+                     Button("Stop") {
+                         stopCommand()
+                     }
+                     .buttonStyle(.borderedProminent)
                      .font(getFont(for: selectedFontSize, size: 14))
-                     .autocapitalization(.none)
-                     .autocorrectionDisabled(true)
-                     .disabled(connectionState != .connected || isCommandRunning)
-                
-                Button("History") {
-                    showHistory = true
-                }
-                .buttonStyle(.borderedProminent)
-                .font(getFont(for: selectedFontSize, size: 14))
-                .disabled(connectionState != .connected || isCommandRunning)
-                
-                if isCommandRunning {
-                    Button("Stop") {
-                        stopCommand()
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .font(getFont(for: selectedFontSize, size: 14))
-                } else {
-                    Button("Send") {
-                        sendCommand()
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .font(getFont(for: selectedFontSize, size: 14))
-                    .disabled(commandInput.isEmpty || connectionState != .connected)
-                }
-            }
-            .padding()
+                 } else {
+                     Button("Send") {
+                         sendCommand()
+                     }
+                     .buttonStyle(.borderedProminent)
+                     .font(getFont(for: selectedFontSize, size: 14))
+                     .disabled(commandInput.isEmpty || connectionState != .connected)
+                 }
+             }
+             .padding()
             
             // History sheet
             .sheet(isPresented: $showHistory) {
@@ -330,6 +350,24 @@ private func savePreferences() {
         // Load backend preference
         if let savedBackend = UserDefaults.standard.string(forKey: "SelectedSSHBackend") {
             selectedBackend = SSHBackend(rawValue: savedBackend) ?? .default
+        }
+    }
+    
+    // MARK: - Terminal Output Operations
+    private func clearTerminal() {
+        terminalOutput.removeAll()
+    }
+    
+    private func copyToClipboard() {
+        let outputText = terminalOutput.joined(separator: "\n")
+        UIPasteboard.general.string = outputText
+        print("Copied \(terminalOutput.count) lines to clipboard")
+    }
+    
+    private func pasteFromClipboard() {
+        if let pastedText = UIPasteboard.general.string {
+            commandInput = pastedText
+            print("Pasted \(pastedText.count) characters to command input")
         }
     }
 }
