@@ -7,13 +7,19 @@
 
 import SwiftUI
 
+/// Represents a single line in the terminal output
+struct TerminalOutput: Identifiable {
+    let id = UUID()
+    let text: String
+}
+
 struct TerminalView: View {
     let host: SSHHost
     @ObservedObject var hostManager: HostManager
     @State private var selectedBackend: SSHBackend = .default
     
     @State private var commandInput = ""
-    @State private var terminalOutput = [String]()
+    @State private var terminalOutput = [TerminalOutput]()
     @State private var connectionState: ConnectionState = .disconnected
     @State private var showHistory = false
     @State private var commandHistory = [String]()
@@ -96,8 +102,8 @@ struct TerminalView: View {
             ScrollViewReader { proxy in
                 ScrollView {
                     VStack(alignment: .leading, spacing: 4) {
-                        ForEach(terminalOutput, id: \.self) { line in
-                            Text(line)
+                        ForEach(terminalOutput) { line in
+                            Text(line.text)
                                 .font(getFont(for: selectedFontSize, size: 14))
                                 .foregroundColor(selectedTheme == .dark ? .green : .primary)
                         }
@@ -107,7 +113,9 @@ struct TerminalView: View {
                 .onAppear {
                     // Scroll to bottom when content changes
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                        proxy.scrollTo(terminalOutput.last ?? "", anchor: .bottom)
+                        if let lastLine = terminalOutput.last {
+                            proxy.scrollTo(lastLine.id, anchor: .bottom)
+                        }
                     }
                 }
             }
@@ -252,11 +260,11 @@ struct TerminalView: View {
                 try await sshService.connect()
                 connectionState = .connected
                 // Add initial connection message
-                terminalOutput.append("Connected to \(host.hostName) using \(selectedBackend.displayName)")
+                terminalOutput.append(TerminalOutput(text: "Connected to \(host.hostName) using \(selectedBackend.displayName)"))
             } catch {
                 // Handle connection error
                 connectionState = .disconnected
-                terminalOutput.append("Connection failed: \(error.localizedDescription)")
+                terminalOutput.append(TerminalOutput(text: "Connection failed: \(error.localizedDescription)"))
             }
         }
     }
@@ -272,7 +280,7 @@ private func disconnect() {
             // Add the command to the terminal output
             let command = commandInput.trimmingCharacters(in: .whitespacesAndNewlines)
             if !command.isEmpty {
-                terminalOutput.append("$ \(command)")
+                terminalOutput.append(TerminalOutput(text: "$ \(command)"))
                 
                 // Add to command history
                 if !commandHistory.contains(command) {
@@ -288,7 +296,7 @@ private func disconnect() {
 try await streamingService.sendCommandStreaming(command) { output in
                               DispatchQueue.main.async {
                                   if !output.isEmpty {
-                                      terminalOutput.append(output)
+                                      terminalOutput.append(TerminalOutput(text: output))
                                   }
                               }
                           }
@@ -296,7 +304,7 @@ try await streamingService.sendCommandStreaming(command) { output in
                          isCommandRunning = false
                      } catch {
                          DispatchQueue.main.async {
-                             terminalOutput.append("Error: \(error.localizedDescription)")
+                             terminalOutput.append(TerminalOutput(text: "Error: \(error.localizedDescription)"))
                              isCommandRunning = false
                          }
                      }
@@ -305,10 +313,10 @@ try await streamingService.sendCommandStreaming(command) { output in
                      do {
                          let response = try await sshService.sendCommand(command)
                          if !response.isEmpty {
-                             terminalOutput.append(response)
+                             terminalOutput.append(TerminalOutput(text: response))
                          }
                      } catch {
-                         terminalOutput.append("Error: \(error.localizedDescription)")
+                         terminalOutput.append(TerminalOutput(text: "Error: \(error.localizedDescription)"))
                      }
                  }
                 
@@ -359,7 +367,7 @@ private func savePreferences() {
     }
     
     private func copyToClipboard() {
-        let outputText = terminalOutput.joined(separator: "\n")
+        let outputText = terminalOutput.map { $0.text }.joined(separator: "\n")
         UIPasteboard.general.string = outputText
         print("Copied \(terminalOutput.count) lines to clipboard")
     }
