@@ -218,18 +218,13 @@ class KeychainService {
             return "Invalid"
         }
         
-        // Simple hash (in production, use proper SSH fingerprinting)
-        var hash = [UInt8](repeating: 0, count: 32)
-        if let sha256 = CryptoKit.SHA256.hash(data: data) {
-            sha256.withUnsafeBytes { buffer in
-                for i in 0..<32 {
-                    hash[i] = buffer.load(fromByteOffset: i, as: UInt8.self)
-                }
-            }
-        }
+        // Generate SHA-256 hash
+        let sha256 = CryptoKit.SHA256.hash(data: data)
         
         // Format as hex string with colons (like SSH)
-        let hex = hash.map { String(format: "%02x", $0) }.joined(separator: ":")
+        let hex = sha256.withUnsafeBytes { buffer in
+            (0..<32).map { String(format: "%02x", buffer.load(fromByteOffset: $0, as: UInt8.self)) }.joined(separator: ":")
+        }
         return hex
     }
 }
