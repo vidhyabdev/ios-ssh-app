@@ -14,6 +14,7 @@ struct TerminalView: View {
     
     @State private var commandInput = ""
     @State private var terminalOutput = [String]()
+    @State private var showCopySheet = false
     @State private var connectionState: ConnectionState = .disconnected
     @State private var showHistory = false
     @State private var commandHistory = [String]()
@@ -121,8 +122,22 @@ struct TerminalView: View {
                      .autocorrectionDisabled(true)
                      .disabled(connectionState != .connected || isCommandRunning)
                 
+                Button("Copy") {
+                    copyToClipboard()
+                }
+                .buttonStyle(.borderedProminent)
+                .font(getFont(for: selectedFontSize, size: 14))
+                .disabled(connectionState != .connected || terminalOutput.isEmpty)
+                
                 Button("History") {
                     showHistory = true
+                }
+                .buttonStyle(.borderedProminent)
+                .font(getFont(for: selectedFontSize, size: 14))
+                .disabled(connectionState != .connected || isCommandRunning)
+                
+                Button("Paste") {
+                    pasteFromClipboard()
                 }
                 .buttonStyle(.borderedProminent)
                 .font(getFont(for: selectedFontSize, size: 14))
@@ -330,6 +345,22 @@ private func savePreferences() {
         // Load backend preference
         if let savedBackend = UserDefaults.standard.string(forKey: "SelectedSSHBackend") {
             selectedBackend = SSHBackend(rawValue: savedBackend) ?? .default
+        }
+    }
+    
+    // MARK: - Clipboard Support
+    private func copyToClipboard() {
+        let outputText = terminalOutput.joined(separator: "\n")
+        UIPasteboard.general.string = outputText
+        print("Copied \(terminalOutput.count) lines to clipboard")
+    }
+    
+    private func pasteFromClipboard() {
+        if let pastedText = UIPasteboard.general.string {
+            // For multi-line, just append to commandInput
+            // The text field will handle multi-line content if user pastes it
+            commandInput = pastedText
+            print("Pasted \(pastedText.count) characters to command input")
         }
     }
 }
