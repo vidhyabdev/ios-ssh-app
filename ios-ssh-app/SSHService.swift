@@ -26,6 +26,9 @@ protocol SSHService {
     
     /// Cancel the currently running command
     func cancelCommand()
+    
+    /// Send a control character to the SSH host
+    func sendControlCharacter(_ character: String) async throws
 }
 
 /// Mock implementation of SSHService for testing and development
@@ -95,6 +98,11 @@ class MockSSHService: SSHService {
     func cancelCommand() {
         // For mock service, we just log the cancellation
         print("Cancel command requested (mock)")
+    }
+    
+    func sendControlCharacter(_ character: String) async throws {
+        // For mock service, log the control character
+        print("Sending control character: \(character)")
     }
 }
 

@@ -7,6 +7,15 @@
 
 import SwiftUI
 
+/// Control character definitions for SSH terminal
+enum ControlCharacter {
+    static let CtrlC = "\u{0003}"  // ETX - End of Text (Ctrl+C)
+    static let CtrlD = "\u{0004}"  // EOT - End of Transmission (Ctrl+D)
+    static let CtrlL = "\u{000C}"  // FF - Form Feed (Ctrl+L, clear screen)
+    static let CtrlZ = "\u{001A}"  // SUB - Substitute (Ctrl+Z, suspend)
+    static let CtrlB = "\u{0002}"  // STX - Start of Text (Ctrl+B, cursor back)
+}
+
 struct TerminalView: View {
     let host: SSHHost
     @ObservedObject var hostManager: HostManager
@@ -20,6 +29,7 @@ struct TerminalView: View {
     @State private var commandHistory = [String]()
     @State private var showSettings = false
     @State private var isCommandRunning = false
+    @State private var isCtrlMode = false
     
     // Terminal preferences
     @State private var selectedTheme: TerminalTheme = .dark
@@ -159,6 +169,63 @@ struct TerminalView: View {
                 }
             }
             .padding()
+            
+            // Ctrl mode toggle and control keys
+            if isCtrlMode {
+                HStack {
+                    Text("Ctrl Mode Active")
+                        .font(getFont(for: selectedFontSize, size: 12))
+                        .foregroundColor(.blue)
+                    
+                    Spacer()
+                    
+                    Button("C (Ctrl+C)") {
+                        sendCtrlC()
+                    }
+                    .buttonStyle(.bordered)
+                    .font(getFont(for: selectedFontSize, size: 12))
+                    
+                    Button("D (Ctrl+D)") {
+                        sendCtrlD()
+                    }
+                    .buttonStyle(.bordered)
+                    .font(getFont(for: selectedFontSize, size: 12))
+                    
+                    Button("L (Ctrl+L)") {
+                        sendCtrlL()
+                    }
+                    .buttonStyle(.bordered)
+                    .font(getFont(for: selectedFontSize, size: 12))
+                    
+                    Button("Z (Ctrl+Z)") {
+                        sendCtrlZ()
+                    }
+                    .buttonStyle(.bordered)
+                    .font(getFont(for: selectedFontSize, size: 12))
+                    
+                    Button("B (Ctrl+B)") {
+                        sendCtrlB()
+                    }
+                    .buttonStyle(.bordered)
+                    .font(getFont(for: selectedFontSize, size: 12))
+                }
+                .padding()
+                .background(selectedTheme == .dark ? Color.gray.opacity(0.2) : Color.blue.opacity(0.1))
+                .cornerRadius(8)
+            }
+            
+            // Ctrl mode toggle button
+            HStack {
+                Spacer()
+                Button(isCtrlMode ? "Done" : "Ctrl") {
+                    toggleCtrlMode()
+                }
+                .buttonStyle(.borderedProminent)
+                .font(getFont(for: selectedFontSize, size: 14))
+                .disabled(connectionState != .connected)
+                Spacer()
+            }
+            .padding(.bottom)
             
             // History sheet
             .sheet(isPresented: $showHistory) {
@@ -361,6 +428,71 @@ private func savePreferences() {
             // The text field will handle multi-line content if user pastes it
             commandInput = pastedText
             print("Pasted \(pastedText.count) characters to command input")
+        }
+    }
+    
+    // MARK: - Ctrl Mode Support
+    private func toggleCtrlMode() {
+        isCtrlMode.toggle()
+    }
+    
+    private func sendCtrlC() {
+        Task {
+            do {
+                try await sshService.sendControlCharacter(ControlCharacter.CtrlC)
+                print("Sent Ctrl+C")
+                isCtrlMode = false
+            } catch {
+                terminalOutput.append("Error sending Ctrl+C: \(error.localizedDescription)")
+            }
+        }
+    }
+    
+    private func sendCtrlD() {
+        Task {
+            do {
+                try await sshService.sendControlCharacter(ControlCharacter.CtrlD)
+                print("Sent Ctrl+D")
+                isCtrlMode = false
+            } catch {
+                terminalOutput.append("Error sending Ctrl+D: \(error.localizedDescription)")
+            }
+        }
+    }
+    
+    private func sendCtrlL() {
+        Task {
+            do {
+                try await sshService.sendControlCharacter(ControlCharacter.CtrlL)
+                print("Sent Ctrl+L")
+                isCtrlMode = false
+            } catch {
+                terminalOutput.append("Error sending Ctrl+L: \(error.localizedDescription)")
+            }
+        }
+    }
+    
+    private func sendCtrlZ() {
+        Task {
+            do {
+                try await sshService.sendControlCharacter(ControlCharacter.CtrlZ)
+                print("Sent Ctrl+Z")
+                isCtrlMode = false
+            } catch {
+                terminalOutput.append("Error sending Ctrl+Z: \(error.localizedDescription)")
+            }
+        }
+    }
+    
+    private func sendCtrlB() {
+        Task {
+            do {
+                try await sshService.sendControlCharacter(ControlCharacter.CtrlB)
+                print("Sent Ctrl+B")
+                isCtrlMode = false
+            } catch {
+                terminalOutput.append("Error sending Ctrl+B: \(error.localizedDescription)")
+            }
         }
     }
 }

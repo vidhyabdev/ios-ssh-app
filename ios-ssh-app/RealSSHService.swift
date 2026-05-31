@@ -116,4 +116,19 @@ class RealSSHService: NSObject, SSHService {
         // depending on how the streaming is implemented
         print("Cancel command requested")
     }
+    
+    func sendControlCharacter(_ character: String) async throws {
+        guard isConnected else {
+            throw SSHError.notConnected
+        }
+        
+        guard let client = client else {
+            throw SSHError.connectionFailed
+        }
+        
+        // Send control character as raw bytes
+        let data = Data(character.utf8)
+        try await client.write(data: data)
+        print("[RealSSHService] Sent control character: \(character)")
+    }
 }
