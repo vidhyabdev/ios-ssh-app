@@ -31,12 +31,11 @@ class RealSSHService: NSObject, SSHService {
         print("[RealSSHService] Password length: \(password.count) chars")
         
         // Create SSHClientSettings with host and password authentication
-        // Citadel SSHClient expects host:port format in the host parameter
-        let hostWithPort = "\(host.hostname):\(host.port)"
-        print("[RealSSHService] Connection target: \(hostWithPort)")
+        // Citadel SSHClient uses default SSH port (22) if not specified
+        print("[RealSSHService] Connection target: \(host.hostname)")
         
         let settings = SSHClientSettings(
-            host: hostWithPort,
+            host: host.hostname,
             authenticationMethod: { .passwordBased(username: host.username, password: password) },
             hostKeyValidator: .acceptAnything()
         )
