@@ -37,6 +37,8 @@ struct EditHostView: View {
                 TextField("Name", text: $hostName)
                 TextField("Hostname", text: $hostname)
                 TextField("Username", text: $username)
+                    .autocapitalization(.none)
+                    .autocorrectionDisabled(true)
                 TextField("Port", text: $port)
                     .keyboardType(.numberPad)
                 SecureField("Password (Optional)", text: $password)
