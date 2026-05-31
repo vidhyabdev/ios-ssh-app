@@ -107,6 +107,22 @@ class MockSSHService: SSHService {
         // For mock service, we just log the cancellation
         print("Cancel command requested (mock)")
     }
+    
+    func openPTYShell(_ onOutput: @escaping (String) -> Void) async throws -> (String) -> Void {
+        // PTY shell not supported in mock service
+        print("[MockSSHService] PTY shell not supported")
+        return { _ in }
+    }
+    
+    func closePTYShell() {
+        // PTY shell not supported in mock service
+        print("[MockSSHService] closePTYShell not supported")
+    }
+    
+    func resizePTY(_ rows: Int, _ cols: Int) {
+        // PTY shell not supported in mock service
+        print("[MockSSHService] resizePTY not supported")
+    }
 }
 
 /// Error types for SSH operations
