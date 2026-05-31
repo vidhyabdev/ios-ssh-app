@@ -26,6 +26,17 @@ protocol SSHService {
     
     /// Cancel the currently running command
     func cancelCommand()
+    
+    /// Open an interactive PTY shell session
+    /// - Parameter onOutput: Closure called with terminal output
+    /// - Returns: A closure to send input to the shell
+    func openPTYShell(_ onOutput: @escaping (String) -> Void) async throws -> (String) -> Void
+    
+    /// Close the PTY shell session
+    func closePTYShell()
+    
+    /// Resize the PTY terminal
+    func resizePTY(_ rows: Int, _ cols: Int)
 }
 
 /// Mock implementation of SSHService for testing and development
