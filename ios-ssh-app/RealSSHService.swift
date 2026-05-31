@@ -3,12 +3,56 @@ import Citadel
 import NIOCore
 
 /// Real implementation of SSHService that executes commands through actual SSH
+/// 
+/// IMPORTANT: SSH Connection Protocol - DO NOT MODIFY WITHOUT TESTING
+/// ================================================================
+/// This connection logic has been carefully tuned for the Citadel SSH library.
+/// The following rules must be followed to prevent regression:
+///
+/// CRITICAL RULES (DO NOT CHANGE):
+/// 1. Use `host.hostname` ONLY for the SSHClientSettings host parameter
+///    - Do NOT append port to hostname (e.g., "host:22")
+///    - Citadel library uses default port 22 when port is not specified
+///    - Changing this caused connection failures on 5/30/2026
+///
+/// 2. Use static method `SSHClient.connect(to: settings)` - NOT instance method
+///    - Do NOT create SSHClient() instance first
+///    - Do NOT call client?.connect() on an instance
+///    - This is the only working pattern verified on 5/30/2026
+///
+/// 3. Authentication: Use password-based authentication with Keychain password
+///    - Password MUST come from KeychainService.shared.getPassword()
+///    - Do NOT hardcode or generate passwords
+///
+/// 4. Host Key Validation: .acceptAnything() is used for simplicity
+///    - Do NOT change host key validation without security review
+///
+/// Connection Flow:
+/// 1. Validate currentHost is set (by setHost() from TerminalView)
+/// 2. Retrieve password from Keychain (secure storage)
+/// 3. Create SSHClientSettings with hostname and auth method
+/// 4. Call SSHClient.connect(to: settings) synchronously
+/// 5. On success: set isConnected = true, store client reference
+/// 6. On failure: reset isConnected = false, client = nil, rethrow error
+///
+/// Testing Checklist (before merging to main):
+/// - [ ] Can connect to known-good host (e.g., 100.76.8.83)
+/// - [ ] Connection uses port 22 (default)
+/// - [ ] Password is retrieved from Keychain
+/// - [ ] Error handling logs diagnostic info
+/// - [ ] Disconnect works properly
+/// - [ ] Commands execute successfully
+///
 class RealSSHService: NSObject, SSHService {
     private var isConnected = false
     private var currentHost: SSHHost?
     private var client: SSHClient? = nil
     private let keychainService = KeychainService.shared
     
+    /// Connect to SSH host using Citadel library
+    /// 
+    /// CRITICAL: This method MUST follow the exact pattern established on 5/30/2026.
+    /// Changes to the connection logic require full regression testing.
     func connect() async throws {
         print("[RealSSHService] ====== CONNECT DIAGNOSTICS ======")
         guard let host = currentHost else {
@@ -22,15 +66,21 @@ class RealSSHService: NSObject, SSHService {
         print("[RealSSHService] Username: \(host.username)")
         
         // Retrieve password from Keychain
+        // CRITICAL: Password MUST come from Keychain for security
         guard let password = keychainService.getPassword(forHost: host) else {
             print("[RealSSHService] Error: Password not found in Keychain")
             throw SSHError.passwordNotFound
         }
         
         // Create SSHClientSettings with host and password authentication
-        // Citadel SSHClient uses default SSH port (22) if not specified in hostname
+        // CRITICAL: Use host.hostname only, do NOT include port in hostname
+        // Citadel SSHClient uses default SSH port (22) if not specified
         print("[RealSSHService] Connection target: \(host.hostname)")
         
+        // CRITICAL: This exact pattern works with Citadel library
+        // - host: hostname (port handled by Citadel default)
+        // - authenticationMethod: password-based
+        // - hostKeyValidator: accept anything (for simplicity)
         let settings = SSHClientSettings(
             host: host.hostname,
             authenticationMethod: { .passwordBased(username: host.username, password: password) },
@@ -38,29 +88,33 @@ class RealSSHService: NSObject, SSHService {
         )
         
         do {
-            // Connect to the server
+            // CRITICAL: Use static SSHClient.connect() method
+            // Do NOT use: client = SSHClient(); try await client?.connect(to: settings)
+            // The static method pattern was verified working on 5/30/2026
             print("[RealSSHService] Calling SSHClient.connect(to: settings)...")
             client = try await SSHClient.connect(to: settings)
             isConnected = true
             print("[RealSSHService] Connection successful!")
         } catch let error as NSError {
+            // Handle connection/authentication failure with detailed error info
             print("[RealSSHService] Connection failed with NSError")
             print("[RealSSHService] Error domain: \(error.domain)")
             print("[RealSSHService] Error code: \(error.code)")
             print("[RealSSHService] Error userInfo: \(error.userInfo)")
             
-            // Check if it's a Citadel/NIO error
+            // Check if it's a Citadel/NIO error (network-level issue)
             if error.domain == "NIOCore.ChannelError" {
                 print("[RealSSHService] NIOCore.ChannelError detected")
             } else if error.domain == "NIOPosix.NIOConnectionError" {
                 print("[RealSSHService] NIOPosix.NIOConnectionError detected")
             }
             
-            // Handle connection/authentication failure
+            // Reset state on failure
             isConnected = false
             client = nil
             throw error
         } catch {
+            // Handle other errors
             print("[RealSSHService] Connection failed with unknown error")
             print("[RealSSHService] Error type: \(type(of: error))")
             print("[RealSSHService] Error description: \(error.localizedDescription)")
