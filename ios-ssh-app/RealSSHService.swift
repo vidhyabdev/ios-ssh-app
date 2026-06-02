@@ -208,4 +208,69 @@ class RealSSHService: NSObject, SSHService {
         // depending on how the streaming is implemented
         print("Cancel command requested")
     }
+    
+    // MARK: - PTY Shell Support
+    
+    private var ptyShell: SSHShell? = nil
+    
+    func openPTYShell(_ onOutput: @escaping (String) -> Void) async throws -> (String) -> Void {
+        print("[RealSSHService] Opening PTY shell session...")
+        
+        guard isConnected else {
+            print("[RealSSHService] Error: Not connected")
+            throw SSHError.notConnected
+        }
+        
+        guard let client = client else {
+            print("[RealSSHService] Error: No client available")
+            throw SSHError.connectionFailed
+        }
+        
+        // Create terminal settings for PTY
+        // Using xterm, 80 columns, 24 rows as requested
+        let term = TerminalSettings(
+            termName: "xterm-256color",
+            columns: 80,
+            rows: 24,
+            pixelWidth: 640,
+            pixelHeight: 480
+        )
+        
+        // Open a shell with PTY using Citadel's openShell method
+        ptyShell = try await client.openShell(terminal: term)
+        
+        print("[RealSSHService] PTY shell opened successfully")
+        
+        // Return a closure to send input to the shell
+        return { [weak self] input in
+            self?.sendToPTYShell(input)
+        }
+    }
+    
+    func closePTYShell() {
+        print("[RealSSHService] Closing PTY shell...")
+        ptyShell?.close()
+        ptyShell = nil
+        print("[RealSSHService] PTY shell closed")
+    }
+    
+    func resizePTY(_ rows: Int, _ cols: Int) {
+        print("[RealSSHService] Resizing PTY to \(rows)x\(cols)")
+        // Citadel's SSHShell doesn't have a direct resize method
+        // For now, just log the resize request
+        // Full resize support would require shell close/reopen
+    }
+    
+    private func sendToPTYShell(_ input: String) {
+        print("[RealSSHService] Sending to PTY shell: \(input)")
+        guard let shell = ptyShell else {
+            print("[RealSSHService] No PTY shell available")
+            return
+        }
+        
+        // Write input to the shell
+        if let data = input.data(using: .utf8) {
+            shell.write(data: data)
+        }
+    }
 }
