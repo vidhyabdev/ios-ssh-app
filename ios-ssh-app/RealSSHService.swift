@@ -1,6 +1,7 @@
 import Foundation
 import Citadel
 import NIOCore
+import NIOSSH
 
 /// Real implementation of SSHService that executes commands through actual SSH
 /// 
@@ -56,6 +57,11 @@ class RealSSHService: NSObject, SSHService {
     private var currentHost: SSHHost?
     private var client: SSHClient? = nil
     private let keychainService = KeychainService.shared
+
+    // PTY interactive session state
+    // These are only accessed from the main thread (via TerminalView actions) or inside the ptyTask.
+    private var ptyTask: Task<Void, Never>?
+    private var ptyInputContinuation: AsyncStream<ByteBuffer>.Continuation?
     
     /// Connect to SSH host using Citadel library
     /// 
@@ -202,9 +208,104 @@ class RealSSHService: NSObject, SSHService {
     }
     
     func cancelCommand() {
-        // For now, we'll just log that cancellation was requested
-        // In a real implementation, we might need to handle cancellation differently
-        // depending on how the streaming is implemented
         print("Cancel command requested")
+    }
+
+    // MARK: - PTY Interactive Session
+
+    /// Opens a PTY shell using Citadel's withPTY API.
+    /// Verified API: SSHClient.withPTY(_:environment:perform:) in Citadel/TTY/Client/TTY.swift
+    /// Requires iOS 17+ (Citadel package minimum). Deployment target is iOS 26.4 — no issue.
+    func startPTYSession(onOutput: @escaping @Sendable (String) -> Void) async throws {
+        guard isConnected, let client = client else {
+            throw SSHError.notConnected
+        }
+
+        // Tear down any existing session before starting a new one
+        stopPTYSession()
+
+        // AsyncStream used as a channel: sendPTYInput() yields buffers,
+        // the write loop inside withPTY consumes them and forwards to TTYStdinWriter.
+        var capturedContinuation: AsyncStream<ByteBuffer>.Continuation?
+        let inputStream = AsyncStream<ByteBuffer>(bufferingPolicy: .unbounded) { cont in
+            capturedContinuation = cont
+        }
+        guard let continuation = capturedContinuation else {
+            throw SSHError.connectionFailed
+        }
+        ptyInputContinuation = continuation
+
+        // PseudoTerminalRequest initializer from NIOSSH (ChildChannelUserEvents.swift):
+        //   init(wantReply:term:terminalCharacterWidth:terminalRowHeight:
+        //        terminalPixelWidth:terminalPixelHeight:terminalModes:)
+        let ptyRequest = SSHChannelRequestEvent.PseudoTerminalRequest(
+            wantReply: true,
+            term: "xterm-256color",
+            terminalCharacterWidth: 80,
+            terminalRowHeight: 24,
+            terminalPixelWidth: 0,
+            terminalPixelHeight: 0,
+            terminalModes: SSHTerminalModes([:])
+        )
+
+        ptyTask = Task {
+            do {
+                try await client.withPTY(ptyRequest) { inbound, outbound in
+                    // Forward input bytes from sendPTYInput() to the PTY stdin
+                    let writeTask = Task {
+                        for await buffer in inputStream {
+                            try? await outbound.write(buffer)
+                        }
+                    }
+
+                    // Stream PTY output (stdout + stderr) to the caller
+                    do {
+                        for try await chunk in inbound {
+                            switch chunk {
+                            case .stdout(let buffer):
+                                let text = String(decoding: buffer.readableBytesView, as: UTF8.self)
+                                onOutput(text)
+                            case .stderr(let buffer):
+                                let text = String(decoding: buffer.readableBytesView, as: UTF8.self)
+                                onOutput(text)
+                            }
+                        }
+                    } catch {
+                        writeTask.cancel()
+                        throw error
+                    }
+                    writeTask.cancel()
+                }
+            } catch is CancellationError {
+                // Session was intentionally stopped via stopPTYSession()
+            } catch {
+                onOutput("[PTY Error] \(error.localizedDescription)\n")
+            }
+        }
+
+        print("[RealSSHService] PTY session started")
+    }
+
+    /// Sends raw text input to the active PTY stdin (e.g. "ls\n" or "\u{03}" for Ctrl+C).
+    func sendPTYInput(_ text: String) {
+        ptyInputContinuation?.yield(ByteBuffer(string: text))
+    }
+
+    /// Resizes the PTY window. Call when the terminal view dimensions change.
+    func resizePTY(cols: Int, rows: Int) {
+        // Resize is sent via TTYStdinWriter.changeSize inside an active session.
+        // Without storing a reference to TTYStdinWriter this is not directly callable;
+        // the session must be restarted with new dimensions for a resize to take effect.
+        // TODO: Store TTYStdinWriter reference to support live resize.
+        print("[RealSSHService] resizePTY(\(cols), \(rows)) — live resize not yet implemented")
+    }
+
+    /// Stops the PTY session and cleans up state.
+    func stopPTYSession() {
+        ptyInputContinuation?.finish()
+        ptyInputContinuation = nil
+        ptyTask?.cancel()
+        ptyTask = nil
+        print("[RealSSHService] PTY session stopped")
     }
 }
