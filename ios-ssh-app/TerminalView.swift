@@ -300,12 +300,12 @@ struct TerminalView: View {
                             .disabled(commandInput.isEmpty || connectionState != .connected)
                     }
                 } else {
-                    // Interactive PTY mode — always show Send
+                    // Interactive PTY mode — same enabled condition as onSubmit/Enter
                     Button("Send") { handleSend() }
                         .buttonStyle(.borderedProminent)
                         .font(monoFont(size: 14))
                         .tint(.orange)
-                        .disabled(commandInput.isEmpty || connectionState != .connected || !isPTYSessionActive)
+                        .disabled(commandInput.isEmpty || connectionState != .connected)
                 }
             }
             .padding()
