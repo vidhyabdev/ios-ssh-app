@@ -26,6 +26,17 @@ protocol SSHService {
     
     /// Cancel the currently running command
     func cancelCommand()
+    
+    /// Open an interactive PTY shell session
+    /// - Parameter onOutput: Closure called with terminal output
+    /// - Returns: A closure to send input to the shell
+    func openPTYShell(_ onOutput: @escaping (String) -> Void) async throws -> (String) -> Void
+    
+    /// Close the PTY shell session
+    func closePTYShell()
+    
+    /// Resize the PTY terminal
+    func resizePTY(_ rows: Int, _ cols: Int)
 }
 
 /// Mock implementation of SSHService for testing and development
@@ -95,6 +106,22 @@ class MockSSHService: SSHService {
     func cancelCommand() {
         // For mock service, we just log the cancellation
         print("Cancel command requested (mock)")
+    }
+    
+    func openPTYShell(_ onOutput: @escaping (String) -> Void) async throws -> (String) -> Void {
+        // PTY shell not supported in mock service
+        print("[MockSSHService] PTY shell not supported")
+        return { _ in }
+    }
+    
+    func closePTYShell() {
+        // PTY shell not supported in mock service
+        print("[MockSSHService] closePTYShell not supported")
+    }
+    
+    func resizePTY(_ rows: Int, _ cols: Int) {
+        // PTY shell not supported in mock service
+        print("[MockSSHService] resizePTY not supported")
     }
 }
 
