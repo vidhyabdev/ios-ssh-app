@@ -26,10 +26,6 @@ struct TerminalView: View {
     @State private var showSettings = false
     @State private var isCommandRunning = false
     
-    // PTY Shell State
-    @State private var isPTYShellOpen = false
-    @State private var sendToShell: ((String) -> Void)?
-    
     // Terminal preferences
     @State private var selectedTheme: TerminalTheme = .dark
     @State private var selectedFontSize: TerminalFontSize = .medium
@@ -160,29 +156,12 @@ struct TerminalView: View {
                  .font(getFont(for: selectedFontSize, size: 14))
                  .disabled(connectionState != .connected || isCommandRunning)
                  
-                 Button("Shell") {
-                     if isPTYShellOpen {
-                         closePTYShell()
-                     } else {
-                         openPTYShell()
-                     }
-                 }
-                 .buttonStyle(.bordered)
-                 .font(getFont(for: selectedFontSize, size: 14))
-                 
                  if isCommandRunning {
                      Button("Stop") {
                          stopCommand()
                      }
                      .buttonStyle(.borderedProminent)
                      .font(getFont(for: selectedFontSize, size: 14))
-                 } else if isPTYShellOpen {
-                     Button("Send to Shell") {
-                         sendToPTYShell()
-                     }
-                     .buttonStyle(.borderedProminent)
-                     .font(getFont(for: selectedFontSize, size: 14))
-                     .disabled(commandInput.isEmpty)
                  } else {
                      Button("Send") {
                          sendCommand()
@@ -290,59 +269,10 @@ struct TerminalView: View {
         }
     }
     
-    private func disconnect() {
+private func disconnect() {
         sshService.disconnect()
         connectionState = .disconnected
         terminalOutput.removeAll()
-    }
-    
-    private func openPTYShell() {
-        Task {
-            guard let realSSHService = sshService as? RealSSHService else {
-                terminalOutput.append(TerminalOutput(text: "PTY shell not supported for this backend"))
-                return
-            }
-            
-            terminalOutput.append(TerminalOutput(text: "Opening PTY shell..."))
-            
-            do {
-                let sendClosure = try await realSSHService.openPTYShell { output in
-                    DispatchQueue.main.async {
-                        terminalOutput.append(TerminalOutput(text: output))
-                    }
-                }
-                
-                sendToShell = sendClosure
-                isPTYShellOpen = true
-                terminalOutput.append(TerminalOutput(text: "PTY shell opened. Type commands and press Enter."))
-            } catch {
-                terminalOutput.append(TerminalOutput(text: "Failed to open PTY shell: \(error.localizedDescription)"))
-            }
-        }
-    }
-    
-    private func closePTYShell() {
-        guard let realSSHService = sshService as? RealSSHService else {
-            return
-        }
-        
-        realSSHService.closePTYShell()
-        sendToShell = nil
-        isPTYShellOpen = false
-        terminalOutput.append(TerminalOutput(text: "PTY shell closed"))
-    }
-    
-    private func sendToPTYShell() {
-        let command = commandInput.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !command.isEmpty, let sendClosure = sendToShell {
-            // Add newline to command and send to shell
-            let inputWithNewline = command + "\n"
-            sendClosure(inputWithNewline)
-            terminalOutput.append(TerminalOutput(text: "$ \(command)"))
-            
-            // Clear input
-            commandInput = ""
-        }
     }
     
     private func sendCommand() {
