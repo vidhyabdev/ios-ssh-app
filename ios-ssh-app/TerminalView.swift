@@ -76,12 +76,15 @@ struct TerminalView: View {
                 ptyControlBar
             }
 
-            // Scrollable terminal output
+            // Scrollable terminal output — fills all remaining space
             terminalOutputView
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
 
             // Input bar
             inputBar
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(themeBackground.ignoresSafeArea())
         .navigationTitle("Terminal")
         .navigationBarItems(trailing: Button("Settings") {
             showSettings = true
@@ -142,26 +145,31 @@ struct TerminalView: View {
     private var connectionControls: some View {
         Group {
             if connectionState == .disconnected {
-                HStack {
-                    Button("Connect") { connect() }
-                        .buttonStyle(.borderedProminent)
-                        .padding()
-                }
+                Button("Connect") { connect() }
+                    .buttonStyle(.borderedProminent)
+                    .frame(maxWidth: .infinity)
+                    .padding(.horizontal)
+                    .padding(.vertical, 6)
             } else if connectionState == .connecting {
-                HStack {
+                HStack(spacing: 8) {
                     ProgressView()
                     Text("Connecting…")
-                        .font(monoFont(size: 14))
-                        .padding(.leading, 8)
+                        .font(monoFont(size: 13))
                 }
-                .padding()
+                .padding(.vertical, 6)
             } else {
+                // Connected: compact disconnect strip
                 HStack {
-                    Button("Disconnect") { disconnect() }
-                        .buttonStyle(.borderedProminent)
-                        .tint(.red)
-                        .padding()
+                    Spacer()
+                    Button(role: .destructive) { disconnect() } label: {
+                        Label("Disconnect", systemImage: "xmark.circle.fill")
+                            .font(monoFont(size: 12))
+                    }
+                    .buttonStyle(.bordered)
+                    .tint(.red)
                 }
+                .padding(.horizontal)
+                .padding(.vertical, 4)
             }
         }
     }
@@ -256,77 +264,83 @@ struct TerminalView: View {
     }
 
     private var inputBar: some View {
-        VStack(spacing: 0) {
-            HStack {
+        VStack(spacing: 8) {
+            // Row 1: full-width text field + primary Send/Stop button
+            HStack(spacing: 8) {
                 TextField(
                     terminalMode == .interactive ? "Type input… (↵ sends)" : "Enter command…",
                     text: $commandInput
                 )
                 .textFieldStyle(RoundedBorderTextFieldStyle())
-                .font(monoFont(size: 14))
+                .font(monoFont(size: 15))
                 .autocapitalization(.none)
                 .autocorrectionDisabled(true)
+                .frame(maxWidth: .infinity)
                 .disabled(connectionState != .connected || (terminalMode == .command && isCommandRunning))
                 .onSubmit { handleSend() }
 
-                Button("Clear") { clearTerminal() }
-                    .buttonStyle(.bordered)
-                    .font(monoFont(size: 14))
-                    .disabled(terminalOutput.isEmpty)
-
-                Button("Copy") { copyToClipboard() }
-                    .buttonStyle(.bordered)
-                    .font(monoFont(size: 14))
-                    .disabled(terminalOutput.isEmpty)
-
-                Button("Paste") { pasteFromClipboard() }
-                    .buttonStyle(.bordered)
-                    .font(monoFont(size: 14))
-
-                if terminalMode == .command {
-                    Button("History") { showHistory = true }
-                        .buttonStyle(.bordered)
-                        .font(monoFont(size: 14))
-                        .disabled(connectionState != .connected || isCommandRunning)
-
-                    if isCommandRunning {
-                        Button("Stop") { stopCommand() }
-                            .buttonStyle(.borderedProminent)
-                            .font(monoFont(size: 14))
-                    } else {
-                        Button("Send") { handleSend() }
-                            .buttonStyle(.borderedProminent)
-                            .font(monoFont(size: 14))
-                            .disabled(commandInput.isEmpty || connectionState != .connected)
+                if terminalMode == .command && isCommandRunning {
+                    Button { stopCommand() } label: {
+                        Image(systemName: "stop.fill")
                     }
+                    .buttonStyle(.borderedProminent)
+                    .tint(.red)
                 } else {
-                    // Interactive PTY mode — same enabled condition as onSubmit/Enter
-                    Button("Send") { handleSend() }
-                        .buttonStyle(.borderedProminent)
-                        .font(monoFont(size: 14))
-                        .tint(.orange)
-                        .disabled(commandInput.isEmpty || connectionState != .connected)
+                    Button { handleSend() } label: {
+                        Image(systemName: "arrow.up.circle.fill")
+                            .font(.system(size: 22))
+                    }
+                    .buttonStyle(.borderless)
+                    .tint(terminalMode == .interactive ? .orange : .accentColor)
+                    .disabled(commandInput.isEmpty || connectionState != .connected)
                 }
             }
-            .padding()
-            .sheet(isPresented: $showHistory) {
-                NavigationStack {
-                    List(commandHistory.reversed(), id: \.self) { cmd in
-                        Text(cmd)
-                            .onTapGesture {
-                                commandInput = cmd
-                                showHistory = false
-                            }
-                    }
-                    .navigationTitle("History")
-                    .toolbar {
-                        ToolbarItem(placement: .topBarTrailing) {
-                            Button("Close") { showHistory = false }
+
+            // Row 2: compact secondary action buttons
+            HStack(spacing: 6) {
+                actionButton("Clear", "trash") { clearTerminal() }
+                    .disabled(terminalOutput.isEmpty)
+                actionButton("Copy", "doc.on.doc") { copyToClipboard() }
+                    .disabled(terminalOutput.isEmpty)
+                actionButton("Paste", "doc.on.clipboard") { pasteFromClipboard() }
+                if terminalMode == .command {
+                    actionButton("History", "clock.arrow.circlepath") { showHistory = true }
+                        .disabled(connectionState != .connected || isCommandRunning)
+                }
+                Spacer(minLength: 0)
+            }
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .background(.thinMaterial)
+        .sheet(isPresented: $showHistory) {
+            NavigationStack {
+                List(commandHistory.reversed(), id: \.self) { cmd in
+                    Text(cmd)
+                        .onTapGesture {
+                            commandInput = cmd
+                            showHistory = false
                         }
+                }
+                .navigationTitle("History")
+                .toolbar {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button("Close") { showHistory = false }
                     }
                 }
             }
         }
+    }
+
+    /// Compact labeled icon button used for the secondary action row.
+    private func actionButton(_ label: String, _ systemImage: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Label(label, systemImage: systemImage)
+                .font(.system(size: 12))
+                .labelStyle(.titleAndIcon)
+        }
+        .buttonStyle(.bordered)
+        .controlSize(.small)
     }
 
     // MARK: - Control Key Button
@@ -538,15 +552,19 @@ struct TerminalView: View {
     /// Note: a full terminal emulator (e.g. SwiftTerm) is needed for correct rendering
     /// of cursor-addressed apps like top, vim, htop.
     private static let ansiRegex: NSRegularExpression? = {
-        // CSI: ESC [ <param bytes 0x30-0x3F>* <intermediate bytes 0x20-0x2F>* <final byte 0x40-0x7E>
-        let csi      = "\u{1B}\\[[0-9;:<=>?!\"'#%()*+/ ]*[@-~]"
-        // OSC terminated by BEL (0x07)
+        // OSC terminated by BEL (0x07)  — e.g. set window title
         let oscBEL   = "\u{1B}\\][^\u{07}\u{1B}]*\u{07}"
         // OSC terminated by ST (ESC \)
         let oscST    = "\u{1B}\\][^\u{1B}]*\u{1B}\\\\"
-        // Any other ESC + single non-bracket char (ESC M, ESC =, etc.)
-        let escOther = "\u{1B}[^\\[\\]]"
-        return try? NSRegularExpression(pattern: "(\(oscBEL)|\(oscST)|\(csi)|\(escOther))")
+        // CSI: ESC [ <params 0x30-0x3F>* <intermediates 0x20-0x2F>* <final 0x40-0x7E>
+        let csi      = "\u{1B}\\[[0-?]*[ -/]*[@-~]"
+        // Charset designation: ESC ( B, ESC ) 0, ESC * U, etc. — the full 3-char sequence.
+        // This MUST come before the generic ESC rule; otherwise the trailing final byte
+        // (e.g. the "B" in ESC ( B emitted by `tput sgr0`) leaks into the output.
+        let charset  = "\u{1B}[()*+./-][0-~]"
+        // Any other 2-char ESC sequence (ESC M, ESC =, ESC >, ESC c, …) except [ and ]
+        let escOther = "\u{1B}[^\\[\\]()*+./-]"
+        return try? NSRegularExpression(pattern: "(\(oscBEL)|\(oscST)|\(csi)|\(charset)|\(escOther))")
     }()
 
     static func stripANSI(_ text: String) -> String {
@@ -569,6 +587,10 @@ struct TerminalView: View {
         case .connecting: return .orange
         case .connected: return .green
         }
+    }
+
+    private var themeBackground: Color {
+        selectedTheme == .dark ? Color.black : Color(.systemBackground)
     }
 
     private func monoFont(size: CGFloat) -> Font {
