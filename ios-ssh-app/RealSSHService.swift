@@ -214,9 +214,17 @@ class RealSSHService: NSObject, SSHService {
     // MARK: - PTY Interactive Session
 
     /// Opens a PTY shell using Citadel's withPTY API.
-    /// Verified API: SSHClient.withPTY(_:environment:perform:) in Citadel/TTY/Client/TTY.swift
-    /// Requires iOS 17+ (Citadel package minimum). Deployment target is iOS 26.4 — no issue.
-    func startPTYSession(onOutput: @escaping @Sendable (String) -> Void) async throws {
+    ///
+    /// This is a synchronous (non-async) function: it sets up the input channel and
+    /// fires off an internal Task, then returns immediately. The session runs in the
+    /// background. `onOutput` is called for every chunk of PTY output. `onEnd` is
+    /// called exactly once when the session terminates (cleanly or with an error).
+    ///
+    /// Verified API: SSHClient.withPTY(_:environment:perform:) — Citadel/TTY/Client/TTY.swift
+    func startPTYSession(
+        onOutput: @escaping @Sendable (String) -> Void,
+        onEnd: @escaping @Sendable (Error?) -> Void
+    ) throws {
         guard isConnected, let client = client else {
             throw SSHError.notConnected
         }
@@ -224,8 +232,7 @@ class RealSSHService: NSObject, SSHService {
         // Tear down any existing session before starting a new one
         stopPTYSession()
 
-        // AsyncStream used as a channel: sendPTYInput() yields buffers,
-        // the write loop inside withPTY consumes them and forwards to TTYStdinWriter.
+        // AsyncStream bridges sendPTYInput() calls → TTYStdinWriter inside withPTY.
         var capturedContinuation: AsyncStream<ByteBuffer>.Continuation?
         let inputStream = AsyncStream<ByteBuffer>(bufferingPolicy: .unbounded) { cont in
             capturedContinuation = cont
@@ -235,9 +242,7 @@ class RealSSHService: NSObject, SSHService {
         }
         ptyInputContinuation = continuation
 
-        // PseudoTerminalRequest initializer from NIOSSH (ChildChannelUserEvents.swift):
-        //   init(wantReply:term:terminalCharacterWidth:terminalRowHeight:
-        //        terminalPixelWidth:terminalPixelHeight:terminalModes:)
+        // PseudoTerminalRequest: from NIOSSH ChildChannelUserEvents.swift
         let ptyRequest = SSHChannelRequestEvent.PseudoTerminalRequest(
             wantReply: true,
             term: "xterm-256color",
@@ -248,26 +253,22 @@ class RealSSHService: NSObject, SSHService {
             terminalModes: SSHTerminalModes([:])
         )
 
+        // Session runs entirely inside ptyTask. onEnd fires when the task finishes.
         ptyTask = Task {
             do {
                 try await client.withPTY(ptyRequest) { inbound, outbound in
-                    // Forward input bytes from sendPTYInput() to the PTY stdin
                     let writeTask = Task {
                         for await buffer in inputStream {
                             try? await outbound.write(buffer)
                         }
                     }
-
-                    // Stream PTY output (stdout + stderr) to the caller
                     do {
                         for try await chunk in inbound {
                             switch chunk {
                             case .stdout(let buffer):
-                                let text = String(decoding: buffer.readableBytesView, as: UTF8.self)
-                                onOutput(text)
+                                onOutput(String(decoding: buffer.readableBytesView, as: UTF8.self))
                             case .stderr(let buffer):
-                                let text = String(decoding: buffer.readableBytesView, as: UTF8.self)
-                                onOutput(text)
+                                onOutput(String(decoding: buffer.readableBytesView, as: UTF8.self))
                             }
                         }
                     } catch {
@@ -276,10 +277,12 @@ class RealSSHService: NSObject, SSHService {
                     }
                     writeTask.cancel()
                 }
+                onEnd(nil)
             } catch is CancellationError {
-                // Session was intentionally stopped via stopPTYSession()
+                // Intentionally stopped via stopPTYSession() — not an error
+                onEnd(nil)
             } catch {
-                onOutput("[PTY Error] \(error.localizedDescription)\n")
+                onEnd(error)
             }
         }
 

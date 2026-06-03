@@ -460,33 +460,43 @@ struct TerminalView: View {
         isPTYSessionActive = true
         terminalOutput.append(TerminalOutput(text: "[PTY] Starting interactive session (xterm-256color 80×24)…"))
 
-        Task {
-            do {
-                try await realSSH.startPTYSession { rawOutput in
+        // startPTYSession is synchronous — it fires off an internal Task and returns immediately.
+        // onOutput is called for each raw PTY chunk; onEnd fires once when the session terminates.
+        do {
+            try realSSH.startPTYSession(
+                onOutput: { rawOutput in
                     DispatchQueue.main.async {
-                        // PTY output arrives as raw bytes which may contain ANSI escape codes.
-                        // Split on newlines for basic line-by-line display.
-                        // Full ANSI rendering requires a terminal emulator (e.g. SwiftTerm).
-                        let lines = rawOutput.components(separatedBy: "\n")
-                        for line in lines {
-                            let stripped = line.replacingOccurrences(of: "\r", with: "")
-                            // Keep empty lines to preserve spacing, but skip pure whitespace
-                            if !stripped.trimmingCharacters(in: .whitespaces).isEmpty || lines.count == 1 {
-                                terminalOutput.append(TerminalOutput(text: stripped))
-                            }
+                        // Strip ANSI escape codes so terminal colors/control sequences don't
+                        // pollute the text display. Full rendering requires SwiftTerm.
+                        let cleaned = TerminalView.stripANSI(rawOutput)
+                            .replacingOccurrences(of: "\r\n", with: "\n")
+                            .replacingOccurrences(of: "\r", with: "\n")
+
+                        // Split on newlines; skip only the trailing empty element after a
+                        // final \n (keep intermediate blank lines for spacing).
+                        let parts = cleaned.components(separatedBy: "\n")
+                        for (i, part) in parts.enumerated() {
+                            if i == parts.count - 1 && part.isEmpty { continue }
+                            terminalOutput.append(TerminalOutput(text: part))
                         }
                     }
+                },
+                onEnd: { error in
+                    DispatchQueue.main.async {
+                        if let error = error {
+                            terminalOutput.append(TerminalOutput(
+                                text: "[PTY] Session error: \(error.localizedDescription)"
+                            ))
+                        } else {
+                            terminalOutput.append(TerminalOutput(text: "[PTY] Session ended"))
+                        }
+                        isPTYSessionActive = false
+                    }
                 }
-                DispatchQueue.main.async {
-                    terminalOutput.append(TerminalOutput(text: "[PTY] Session ended"))
-                    isPTYSessionActive = false
-                }
-            } catch {
-                DispatchQueue.main.async {
-                    terminalOutput.append(TerminalOutput(text: "[PTY] Session error: \(error.localizedDescription)"))
-                    isPTYSessionActive = false
-                }
-            }
+            )
+        } catch {
+            terminalOutput.append(TerminalOutput(text: "[PTY] Failed to start: \(error.localizedDescription)"))
+            isPTYSessionActive = false
         }
     }
 
@@ -515,6 +525,35 @@ struct TerminalView: View {
     }
 
     // MARK: - Helpers
+
+    /// Strips ANSI / VT escape sequences from raw PTY output so the text is readable
+    /// in a plain SwiftUI Text view.
+    ///
+    /// Patterns removed:
+    ///   CSI  — ESC [ ... final_byte  (colors, cursor movement, bracketed-paste mode, etc.)
+    ///   OSC  — ESC ] ... BEL        (window title, hyperlinks, etc.)
+    ///   OSC  — ESC ] ... ESC \      (same, String Terminator variant)
+    ///   Other — ESC + single char   (e.g. ESC M, ESC =)
+    ///
+    /// Note: a full terminal emulator (e.g. SwiftTerm) is needed for correct rendering
+    /// of cursor-addressed apps like top, vim, htop.
+    private static let ansiRegex: NSRegularExpression? = {
+        // CSI: ESC [ <param bytes 0x30-0x3F>* <intermediate bytes 0x20-0x2F>* <final byte 0x40-0x7E>
+        let csi      = "\u{1B}\\[[0-9;:<=>?!\"'#%()*+/ ]*[@-~]"
+        // OSC terminated by BEL (0x07)
+        let oscBEL   = "\u{1B}\\][^\u{07}\u{1B}]*\u{07}"
+        // OSC terminated by ST (ESC \)
+        let oscST    = "\u{1B}\\][^\u{1B}]*\u{1B}\\\\"
+        // Any other ESC + single non-bracket char (ESC M, ESC =, etc.)
+        let escOther = "\u{1B}[^\\[\\]]"
+        return try? NSRegularExpression(pattern: "(\(oscBEL)|\(oscST)|\(csi)|\(escOther))")
+    }()
+
+    static func stripANSI(_ text: String) -> String {
+        guard let regex = ansiRegex else { return text }
+        let range = NSRange(text.startIndex..., in: text)
+        return regex.stringByReplacingMatches(in: text, range: range, withTemplate: "")
+    }
 
     private var connectionStateText: String {
         switch connectionState {
