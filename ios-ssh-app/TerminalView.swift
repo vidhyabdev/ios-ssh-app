@@ -36,6 +36,10 @@ struct TerminalView: View {
     @State private var isMockAtBottom = true
     private let mockBottomID = "mock-bottom"
 
+    // Keyboard height tracking — used to keep the input bar above the keyboard.
+    // safeAreaInset on UIViewRepresentable is unreliable; we measure directly.
+    @State private var keyboardPadding: CGFloat = 0
+
     // SSH Service
     @State private var sshService: SSHService
 
@@ -106,21 +110,22 @@ struct TerminalView: View {
                             }
                         }
                     }
-                    .safeAreaInset(edge: .bottom, spacing: 0) {
-                        inputBar
-                    }
+                    inputBar
+                        .padding(.bottom, keyboardPadding)
                 } else {
                     // ── Mock SSH: text output view ──
                     mockOutputView
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .safeAreaInset(edge: .bottom, spacing: 0) {
-                            inputBar
-                        }
+                    inputBar
+                        .padding(.bottom, keyboardPadding)
                 }
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color.black.ignoresSafeArea())
+        // Extend to the true screen bottom so keyboardFrame.height is an exact
+        // pixel offset — no home-indicator safe-area double-counting.
+        .ignoresSafeArea(.all, edges: .bottom)
         .navigationTitle("Terminal")
         .navigationBarItems(trailing: Button("Settings") {
             showSettings = true
@@ -136,6 +141,21 @@ struct TerminalView: View {
                 selectedFontSize: $selectedFontSize,
                 selectedBackend: $selectedBackend
             )
+        }
+        // Keyboard tracking via NotificationCenter publishers.
+        // onReceive runs in the view's update context so @State mutation is safe.
+        .onReceive(
+            NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)
+        ) { notification in
+            guard let frame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect else { return }
+            let duration = notification.userInfo?[UIResponder.keyboardAnimationDurationUserInfoKey] as? Double ?? 0.25
+            withAnimation(.easeOut(duration: duration)) { keyboardPadding = frame.height }
+        }
+        .onReceive(
+            NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)
+        ) { notification in
+            let duration = notification.userInfo?[UIResponder.keyboardAnimationDurationUserInfoKey] as? Double ?? 0.25
+            withAnimation(.easeOut(duration: duration)) { keyboardPadding = 0 }
         }
     }
 
