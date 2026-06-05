@@ -77,7 +77,6 @@ struct TerminalView: View {
                 // Connected
                 if sshService is RealSSHService {
                     // ── Real SSH: full SwiftTerm emulator ──
-                    ctrlKeyBar
                     SwiftTermView(
                         fontSize: ptyFontSize,
                         controller: ptyController,
@@ -104,6 +103,7 @@ struct TerminalView: View {
                             }
                         }
                     }
+                    ctrlKeyBar
                     inputBar
                 } else {
                     // ── Mock SSH: text output view ──
@@ -283,8 +283,15 @@ struct TerminalView: View {
             HStack(spacing: 6) {
                 actionButton("History", "clock.arrow.circlepath") { showHistory = true }
                 actionButton("Paste", "doc.on.clipboard") { pasteFromClipboard() }
-                if !(sshService is RealSSHService) {
+                if sshService is RealSSHService {
+                    actionButton("Clear", "trash") { clearPTYScreen() }
+                        .disabled(!isPTYSessionActive)
+                    actionButton("Copy", "doc.on.doc") { copyPTYInput() }
+                        .disabled(commandInput.isEmpty)
+                } else {
                     actionButton("Clear", "trash") { mockOutput.removeAll() }
+                        .disabled(mockOutput.isEmpty)
+                    actionButton("Copy", "doc.on.doc") { copyMockOutput() }
                         .disabled(mockOutput.isEmpty)
                 }
                 Spacer(minLength: 0)
@@ -411,6 +418,22 @@ struct TerminalView: View {
 
     private func pasteFromClipboard() {
         if let text = UIPasteboard.general.string { commandInput = text }
+    }
+
+    /// Clears the PTY screen by sending the `clear` command (same as Ctrl+L).
+    private func clearPTYScreen() {
+        (sshService as? RealSSHService)?.sendPTYInput("clear\n")
+    }
+
+    /// Copies the current input-field text to the clipboard.
+    private func copyPTYInput() {
+        guard !commandInput.isEmpty else { return }
+        UIPasteboard.general.string = commandInput
+    }
+
+    /// Copies all mock text-output lines to the clipboard.
+    private func copyMockOutput() {
+        UIPasteboard.general.string = mockOutput.map(\.text).joined(separator: "\n")
     }
 
     // MARK: - Helpers
