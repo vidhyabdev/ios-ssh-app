@@ -40,6 +40,10 @@ struct TerminalView: View {
     @State private var terminalMode: TerminalMode = .command
     @State private var isPTYSessionActive = false
 
+    // Scrollback: only auto-follow output when the user is already at the bottom.
+    @State private var isAtBottom = true
+    private let bottomAnchorID = "terminal-bottom-anchor"
+
     // SSH Service
     @State private var sshService: SSHService
 
@@ -174,13 +178,30 @@ struct TerminalView: View {
         }
     }
 
+    /// Custom segmented toggle. Replaces SwiftUI's Picker(.segmented) because the
+    /// system control renders unselected text dark-on-dark in the dark theme,
+    /// making the "Interactive PTY" option effectively invisible.
     private var modePicker: some View {
-        Picker("Mode", selection: $terminalMode) {
+        HStack(spacing: 0) {
             ForEach(TerminalMode.allCases, id: \.self) { mode in
-                Text(mode.displayName).tag(mode)
+                let isSelected = terminalMode == mode
+                Button {
+                    terminalMode = mode
+                } label: {
+                    Text(mode.displayName)
+                        .font(monoFont(size: 13).weight(isSelected ? .semibold : .regular))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                        .background(isSelected ? Color.accentColor : Color.clear)
+                        .foregroundColor(
+                            isSelected ? .white : (selectedTheme == .dark ? .white : .primary)
+                        )
+                }
+                .buttonStyle(.plain)
             }
         }
-        .pickerStyle(.segmented)
+        .background(selectedTheme == .dark ? Color(white: 0.18) : Color(white: 0.85))
+        .clipShape(RoundedRectangle(cornerRadius: 8))
         .padding(.horizontal)
         .padding(.vertical, 4)
     }
@@ -251,13 +272,44 @@ struct TerminalView: View {
                             .foregroundColor(selectedTheme == .dark ? .green : .primary)
                             .textSelection(.enabled)
                     }
+                    // Invisible anchor used to detect "at bottom" and to scroll to.
+                    Color.clear
+                        .frame(height: 1)
+                        .id(bottomAnchorID)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding()
             }
+            // Track whether the bottom of the content is currently within view.
+            .onScrollGeometryChange(for: Bool.self) { geo in
+                geo.contentOffset.y + geo.containerSize.height >= geo.contentSize.height - 24
+            } action: { _, atBottom in
+                isAtBottom = atBottom
+            }
+            // Auto-follow only when the user hasn't scrolled up.
             .onChange(of: terminalOutput.count) { _, _ in
-                if let last = terminalOutput.last {
-                    proxy.scrollTo(last.id, anchor: .bottom)
+                guard isAtBottom else { return }
+                withAnimation(.linear(duration: 0.1)) {
+                    proxy.scrollTo(bottomAnchorID, anchor: .bottom)
+                }
+            }
+            // Floating "jump to bottom" button, shown only when scrolled up.
+            .overlay(alignment: .bottomTrailing) {
+                if !isAtBottom {
+                    Button {
+                        withAnimation {
+                            proxy.scrollTo(bottomAnchorID, anchor: .bottom)
+                        }
+                        isAtBottom = true
+                    } label: {
+                        Image(systemName: "arrow.down.circle.fill")
+                            .font(.system(size: 34))
+                            .foregroundStyle(.white, Color.accentColor)
+                            .shadow(radius: 3)
+                    }
+                    .padding(.trailing, 16)
+                    .padding(.bottom, 12)
+                    .transition(.opacity)
                 }
             }
         }
