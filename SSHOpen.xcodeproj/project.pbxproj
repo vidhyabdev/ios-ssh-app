@@ -12,13 +12,13 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		73961AAB2FC7694800B0363E /* ios-ssh-app.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "ios-ssh-app.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		73961AAB2FC7694800B0363E /* SSHOpen.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; name = "SSHOpen.app"; path = SSHOpen.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		73961AAD2FC7694800B0363E /* ios-ssh-app */ = {
+		73961AAD2FC7694800B0363E /* SSHOpen */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = "ios-ssh-app";
+			path = SSHOpen;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -39,7 +39,7 @@
 		73961AA22FC7694800B0363E = {
 			isa = PBXGroup;
 			children = (
-				73961AAD2FC7694800B0363E /* ios-ssh-app */,
+				73961AAD2FC7694800B0363E /* SSHOpen */,
 				73961AAC2FC7694800B0363E /* Products */,
 			);
 			sourceTree = "<group>";
@@ -47,7 +47,7 @@
 		73961AAC2FC7694800B0363E /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				73961AAB2FC7694800B0363E /* ios-ssh-app.app */,
+				73961AAB2FC7694800B0363E /* SSHOpen.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -55,9 +55,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		73961AAA2FC7694800B0363E /* ios-ssh-app */ = {
+		73961AAA2FC7694800B0363E /* SSHOpen */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 73961AB62FC7694A00B0363E /* Build configuration list for PBXNativeTarget "ios-ssh-app" */;
+			buildConfigurationList = 73961AB62FC7694A00B0363E /* Build configuration list for PBXNativeTarget "SSHOpen" */;
 			buildPhases = (
 				73961AA72FC7694800B0363E /* Sources */,
 				73961AA82FC7694800B0363E /* Frameworks */,
@@ -68,15 +68,15 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				73961AAD2FC7694800B0363E /* ios-ssh-app */,
+				73961AAD2FC7694800B0363E /* SSHOpen */,
 			);
-			name = "ios-ssh-app";
+			name = SSHOpen;
 			packageProductDependencies = (
 				73CB8FFB2FC783FD00E16A30 /* Citadel */,
 				73CB90002FC7840000E16A30 /* SwiftTerm */,
 			);
-			productName = "ios-ssh-app";
-			productReference = 73961AAB2FC7694800B0363E /* ios-ssh-app.app */;
+			productName = SSHOpen;
+			productReference = 73961AAB2FC7694800B0363E /* SSHOpen.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -94,7 +94,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 73961AA62FC7694800B0363E /* Build configuration list for PBXProject "ios-ssh-app" */;
+			buildConfigurationList = 73961AA62FC7694800B0363E /* Build configuration list for PBXProject "SSHOpen" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -112,7 +112,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				73961AAA2FC7694800B0363E /* ios-ssh-app */,
+				73961AAA2FC7694800B0363E /* SSHOpen */,
 			);
 		};
 /* End PBXProject section */
@@ -269,6 +269,7 @@
 				DEVELOPMENT_TEAM = TH5X77C9UL;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = SSHOpen;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -278,9 +279,8 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				INFOPLIST_KEY_CFBundleDisplayName = SSHOpen;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.vidhyabdev.SSHOpen";
+				PRODUCT_BUNDLE_IDENTIFIER = com.vidhyabdev.SSHOpen;
 				PRODUCT_NAME = SSHOpen;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -302,6 +302,7 @@
 				DEVELOPMENT_TEAM = TH5X77C9UL;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = SSHOpen;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -311,9 +312,8 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				INFOPLIST_KEY_CFBundleDisplayName = SSHOpen;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.vidhyabdev.SSHOpen";
+				PRODUCT_BUNDLE_IDENTIFIER = com.vidhyabdev.SSHOpen;
 				PRODUCT_NAME = SSHOpen;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -328,7 +328,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		73961AA62FC7694800B0363E /* Build configuration list for PBXProject "ios-ssh-app" */ = {
+		73961AA62FC7694800B0363E /* Build configuration list for PBXProject "SSHOpen" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				73961AB42FC7694A00B0363E /* Debug */,
@@ -337,7 +337,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		73961AB62FC7694A00B0363E /* Build configuration list for PBXNativeTarget "ios-ssh-app" */ = {
+		73961AB62FC7694A00B0363E /* Build configuration list for PBXNativeTarget "SSHOpen" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				73961AB72FC7694A00B0363E /* Debug */,
