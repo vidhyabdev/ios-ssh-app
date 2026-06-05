@@ -77,6 +77,9 @@ struct TerminalView: View {
                 // Connected
                 if sshService is RealSSHService {
                     // ── Real SSH: full SwiftTerm emulator ──
+                    // safeAreaInset pins inputBar above the keyboard so
+                    // both the text field and the action buttons stay visible
+                    // when the keyboard is open.
                     SwiftTermView(
                         fontSize: ptyFontSize,
                         controller: ptyController,
@@ -103,12 +106,16 @@ struct TerminalView: View {
                             }
                         }
                     }
-                    inputBar
+                    .safeAreaInset(edge: .bottom, spacing: 0) {
+                        inputBar
+                    }
                 } else {
                     // ── Mock SSH: text output view ──
                     mockOutputView
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    inputBar
+                        .safeAreaInset(edge: .bottom, spacing: 0) {
+                            inputBar
+                        }
                 }
             }
         }
