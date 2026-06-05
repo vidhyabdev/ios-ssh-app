@@ -103,7 +103,6 @@ struct TerminalView: View {
                             }
                         }
                     }
-                    ctrlKeyBar
                     inputBar
                 } else {
                     // ── Mock SSH: text output view ──
@@ -170,42 +169,6 @@ struct TerminalView: View {
         .padding(.horizontal, 12)
         .padding(.vertical, 6)
         .background(Color(white: 0.07))
-    }
-
-    // MARK: - Ctrl key bar (Real SSH only)
-
-    private var ctrlKeyBar: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 6) {
-                ctrlButton("Ctrl+C", "\u{03}")
-                ctrlButton("Ctrl+D", "\u{04}")
-                ctrlButton("Ctrl+Z", "\u{1A}")
-                ctrlButton("Ctrl+L", "\u{0C}")
-                ctrlButton("Ctrl+B", "\u{02}")
-                ctrlButton("Tab",    "\t")
-                ctrlButton("Esc",    "\u{1B}")
-                ctrlButton("↑",      "\u{1B}[A")
-                ctrlButton("↓",      "\u{1B}[B")
-                ctrlButton("←",      "\u{1B}[D")
-                ctrlButton("→",      "\u{1B}[C")
-            }
-            .padding(.horizontal, 10)
-        }
-        .padding(.vertical, 5)
-        .background(Color(white: 0.1))
-    }
-
-    private func ctrlButton(_ label: String, _ seq: String) -> some View {
-        Button(label) {
-            (sshService as? RealSSHService)?.sendPTYInput(seq)
-        }
-        .font(monoFont(size: 12))
-        .padding(.horizontal, 8)
-        .padding(.vertical, 4)
-        .background(Color(white: 0.2))
-        .foregroundColor(.white)
-        .clipShape(RoundedRectangle(cornerRadius: 5))
-        .disabled(!isPTYSessionActive)
     }
 
     // MARK: - Mock text output view
