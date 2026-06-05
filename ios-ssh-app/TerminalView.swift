@@ -44,6 +44,9 @@ struct TerminalView: View {
     @State private var isAtBottom = true
     private let bottomAnchorID = "terminal-bottom-anchor"
 
+    // SwiftTerm emulator bridge for interactive PTY rendering.
+    @State private var ptyController = PTYTerminalController()
+
     // SSH Service
     @State private var sshService: SSHService
 
@@ -75,17 +78,19 @@ struct TerminalView: View {
                 modePicker
             }
 
-            // PTY control bar (shown in interactive mode when session is active)
             if terminalMode == .interactive && connectionState == .connected {
+                // Interactive PTY: control bar + live SwiftTerm emulator.
+                // SwiftTerm handles its own keyboard input (tap to type), so the
+                // line-based output view and command input bar are not shown here.
                 ptyControlBar
+                swiftTermArea
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                // Command mode (or not yet connected): line-based output + input bar.
+                terminalOutputView
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                inputBar
             }
-
-            // Scrollable terminal output — fills all remaining space
-            terminalOutputView
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-
-            // Input bar
-            inputBar
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(themeBackground.ignoresSafeArea())
@@ -259,6 +264,44 @@ struct TerminalView: View {
                 .padding(.vertical, 3)
                 .background(selectedTheme == .dark ? Color(white: 0.08) : Color(white: 0.92))
             }
+        }
+    }
+
+    /// Live terminal emulator for interactive PTY mode.
+    private var swiftTermArea: some View {
+        SwiftTermView(
+            fontSize: ptyFontSize,
+            controller: ptyController,
+            onSend: { data in
+                (sshService as? RealSSHService)?.sendPTYInputBytes(data)
+            },
+            onSizeChange: { cols, rows in
+                (sshService as? RealSSHService)?.resizePTY(cols: cols, rows: rows)
+            }
+        )
+        .background(Color.black)
+        .overlay(alignment: .center) {
+            if !isPTYSessionActive {
+                VStack(spacing: 8) {
+                    Image(systemName: "terminal")
+                        .font(.system(size: 40))
+                        .foregroundColor(.gray)
+                    Text("PTY session not running")
+                        .font(monoFont(size: 13))
+                        .foregroundColor(.gray)
+                    Button("Start PTY") { startInteractiveMode() }
+                        .buttonStyle(.borderedProminent)
+                        .tint(.orange)
+                }
+            }
+        }
+    }
+
+    private var ptyFontSize: CGFloat {
+        switch selectedFontSize {
+        case .small: return 11
+        case .medium: return 13
+        case .large: return 16
         }
     }
 
@@ -524,44 +567,29 @@ struct TerminalView: View {
         }
 
         isPTYSessionActive = true
-        terminalOutput.append(TerminalOutput(text: "[PTY] Starting interactive session (xterm-256color 80×24)…"))
 
-        // startPTYSession is synchronous — it fires off an internal Task and returns immediately.
-        // onOutput is called for each raw PTY chunk; onEnd fires once when the session terminates.
+        // Start with the emulator's current grid size if it has laid out already,
+        // otherwise a sane default; the view reports its real size shortly after and
+        // RealSSHService applies it (SIGWINCH) once the channel is ready.
+        let initial = ptyController.size ?? (cols: 80, rows: 24)
+        let controller = ptyController
+
+        // Raw PTY bytes are fed straight into the SwiftTerm emulator, which
+        // interprets cursor movement, colors and line-drawing characters.
         do {
             try realSSH.startPTYSession(
-                onOutput: { rawOutput in
-                    DispatchQueue.main.async {
-                        // Strip ANSI escape codes so terminal colors/control sequences don't
-                        // pollute the text display. Full rendering requires SwiftTerm.
-                        let cleaned = TerminalView.stripANSI(rawOutput)
-                            .replacingOccurrences(of: "\r\n", with: "\n")
-                            .replacingOccurrences(of: "\r", with: "\n")
-
-                        // Split on newlines; skip only the trailing empty element after a
-                        // final \n (keep intermediate blank lines for spacing).
-                        let parts = cleaned.components(separatedBy: "\n")
-                        for (i, part) in parts.enumerated() {
-                            if i == parts.count - 1 && part.isEmpty { continue }
-                            terminalOutput.append(TerminalOutput(text: part))
-                        }
-                    }
+                cols: initial.cols,
+                rows: initial.rows,
+                onOutput: { bytes in
+                    controller.feed(bytes)
                 },
-                onEnd: { error in
+                onEnd: { _ in
                     DispatchQueue.main.async {
-                        if let error = error {
-                            terminalOutput.append(TerminalOutput(
-                                text: "[PTY] Session error: \(error.localizedDescription)"
-                            ))
-                        } else {
-                            terminalOutput.append(TerminalOutput(text: "[PTY] Session ended"))
-                        }
                         isPTYSessionActive = false
                     }
                 }
             )
         } catch {
-            terminalOutput.append(TerminalOutput(text: "[PTY] Failed to start: \(error.localizedDescription)"))
             isPTYSessionActive = false
         }
     }
@@ -591,39 +619,6 @@ struct TerminalView: View {
     }
 
     // MARK: - Helpers
-
-    /// Strips ANSI / VT escape sequences from raw PTY output so the text is readable
-    /// in a plain SwiftUI Text view.
-    ///
-    /// Patterns removed:
-    ///   CSI  — ESC [ ... final_byte  (colors, cursor movement, bracketed-paste mode, etc.)
-    ///   OSC  — ESC ] ... BEL        (window title, hyperlinks, etc.)
-    ///   OSC  — ESC ] ... ESC \      (same, String Terminator variant)
-    ///   Other — ESC + single char   (e.g. ESC M, ESC =)
-    ///
-    /// Note: a full terminal emulator (e.g. SwiftTerm) is needed for correct rendering
-    /// of cursor-addressed apps like top, vim, htop.
-    private static let ansiRegex: NSRegularExpression? = {
-        // OSC terminated by BEL (0x07)  — e.g. set window title
-        let oscBEL   = "\u{1B}\\][^\u{07}\u{1B}]*\u{07}"
-        // OSC terminated by ST (ESC \)
-        let oscST    = "\u{1B}\\][^\u{1B}]*\u{1B}\\\\"
-        // CSI: ESC [ <params 0x30-0x3F>* <intermediates 0x20-0x2F>* <final 0x40-0x7E>
-        let csi      = "\u{1B}\\[[0-?]*[ -/]*[@-~]"
-        // Charset designation: ESC ( B, ESC ) 0, ESC * U, etc. — the full 3-char sequence.
-        // This MUST come before the generic ESC rule; otherwise the trailing final byte
-        // (e.g. the "B" in ESC ( B emitted by `tput sgr0`) leaks into the output.
-        let charset  = "\u{1B}[()*+./-][0-~]"
-        // Any other 2-char ESC sequence (ESC M, ESC =, ESC >, ESC c, …) except [ and ]
-        let escOther = "\u{1B}[^\\[\\]()*+./-]"
-        return try? NSRegularExpression(pattern: "(\(oscBEL)|\(oscST)|\(csi)|\(charset)|\(escOther))")
-    }()
-
-    static func stripANSI(_ text: String) -> String {
-        guard let regex = ansiRegex else { return text }
-        let range = NSRange(text.startIndex..., in: text)
-        return regex.stringByReplacingMatches(in: text, range: range, withTemplate: "")
-    }
 
     private var connectionStateText: String {
         switch connectionState {

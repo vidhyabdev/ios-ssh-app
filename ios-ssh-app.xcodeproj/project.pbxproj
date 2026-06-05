@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		73CB8FFC2FC783FD00E16A30 /* Citadel in Frameworks */ = {isa = PBXBuildFile; productRef = 73CB8FFB2FC783FD00E16A30 /* Citadel */; };
+		73CB90012FC7840000E16A30 /* SwiftTerm in Frameworks */ = {isa = PBXBuildFile; productRef = 73CB90002FC7840000E16A30 /* SwiftTerm */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -17,8 +18,6 @@
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		73961AAD2FC7694800B0363E /* ios-ssh-app */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
 			path = "ios-ssh-app";
 			sourceTree = "<group>";
 		};
@@ -30,6 +29,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				73CB8FFC2FC783FD00E16A30 /* Citadel in Frameworks */,
+				73CB90012FC7840000E16A30 /* SwiftTerm in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -73,6 +73,7 @@
 			name = "ios-ssh-app";
 			packageProductDependencies = (
 				73CB8FFB2FC783FD00E16A30 /* Citadel */,
+				73CB90002FC7840000E16A30 /* SwiftTerm */,
 			);
 			productName = "ios-ssh-app";
 			productReference = 73961AAB2FC7694800B0363E /* ios-ssh-app.app */;
@@ -104,6 +105,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				73CB8FFA2FC783FD00E16A30 /* XCRemoteSwiftPackageReference "Citadel" */,
+				73CB8FFF2FC7840000E16A30 /* XCRemoteSwiftPackageReference "SwiftTerm" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 73961AAC2FC7694800B0363E /* Products */;
@@ -353,6 +355,14 @@
 				minimumVersion = 0.12.1;
 			};
 		};
+		73CB8FFF2FC7840000E16A30 /* XCRemoteSwiftPackageReference "SwiftTerm" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/migueldeicaza/SwiftTerm";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.2.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -360,6 +370,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 73CB8FFA2FC783FD00E16A30 /* XCRemoteSwiftPackageReference "Citadel" */;
 			productName = Citadel;
+		};
+		73CB90002FC7840000E16A30 /* SwiftTerm */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 73CB8FFF2FC7840000E16A30 /* XCRemoteSwiftPackageReference "SwiftTerm" */;
+			productName = SwiftTerm;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

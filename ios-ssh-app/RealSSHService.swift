@@ -62,6 +62,11 @@ class RealSSHService: NSObject, SSHService {
     // These are only accessed from the main thread (via TerminalView actions) or inside the ptyTask.
     private var ptyTask: Task<Void, Never>?
     private var ptyInputContinuation: AsyncStream<ByteBuffer>.Continuation?
+    // Captured inside withPTY so we can issue window-size changes (SIGWINCH) on resize.
+    private var ptyWriter: TTYStdinWriter?
+    // Last requested terminal size; applied once the writer becomes available
+    // (handles the case where the view reports its size before the channel opens).
+    private var pendingResize: (cols: Int, rows: Int)?
     
     /// Connect to SSH host using Citadel library
     /// 
@@ -213,16 +218,21 @@ class RealSSHService: NSObject, SSHService {
 
     // MARK: - PTY Interactive Session
 
-    /// Opens a PTY shell using Citadel's withPTY API.
+    /// Opens a PTY shell using Citadel's withPTY API and streams RAW bytes back.
     ///
-    /// This is a synchronous (non-async) function: it sets up the input channel and
-    /// fires off an internal Task, then returns immediately. The session runs in the
-    /// background. `onOutput` is called for every chunk of PTY output. `onEnd` is
-    /// called exactly once when the session terminates (cleanly or with an error).
+    /// Raw bytes (not decoded/stripped strings) are required so a real terminal
+    /// emulator (SwiftTerm) can interpret cursor movement, colors, and the DEC
+    /// line-drawing charset used by full-screen apps like nvtop/top/htop/vim/tmux.
+    ///
+    /// This is synchronous: it sets up the input channel, launches the session
+    /// Task, and returns immediately. `onOutput` is called for every output chunk;
+    /// `onEnd` fires exactly once when the session terminates.
     ///
     /// Verified API: SSHClient.withPTY(_:environment:perform:) — Citadel/TTY/Client/TTY.swift
     func startPTYSession(
-        onOutput: @escaping @Sendable (String) -> Void,
+        cols: Int = 80,
+        rows: Int = 24,
+        onOutput: @escaping @Sendable ([UInt8]) -> Void,
         onEnd: @escaping @Sendable (Error?) -> Void
     ) throws {
         guard isConnected, let client = client else {
@@ -232,7 +242,7 @@ class RealSSHService: NSObject, SSHService {
         // Tear down any existing session before starting a new one
         stopPTYSession()
 
-        // AsyncStream bridges sendPTYInput() calls → TTYStdinWriter inside withPTY.
+        // AsyncStream bridges sendPTYInput()/sendPTYInputBytes() → TTYStdinWriter.
         var capturedContinuation: AsyncStream<ByteBuffer>.Continuation?
         let inputStream = AsyncStream<ByteBuffer>(bufferingPolicy: .unbounded) { cont in
             capturedContinuation = cont
@@ -246,8 +256,8 @@ class RealSSHService: NSObject, SSHService {
         let ptyRequest = SSHChannelRequestEvent.PseudoTerminalRequest(
             wantReply: true,
             term: "xterm-256color",
-            terminalCharacterWidth: 80,
-            terminalRowHeight: 24,
+            terminalCharacterWidth: cols,
+            terminalRowHeight: rows,
             terminalPixelWidth: 0,
             terminalPixelHeight: 0,
             terminalModes: SSHTerminalModes([:])
@@ -257,6 +267,14 @@ class RealSSHService: NSObject, SSHService {
         ptyTask = Task {
             do {
                 try await client.withPTY(ptyRequest) { inbound, outbound in
+                    self.ptyWriter = outbound
+                    // Apply any size reported by the view before the channel opened.
+                    if let pending = self.pendingResize {
+                        try? await outbound.changeSize(
+                            cols: pending.cols, rows: pending.rows,
+                            pixelWidth: 0, pixelHeight: 0
+                        )
+                    }
                     let writeTask = Task {
                         for await buffer in inputStream {
                             try? await outbound.write(buffer)
@@ -265,10 +283,8 @@ class RealSSHService: NSObject, SSHService {
                     do {
                         for try await chunk in inbound {
                             switch chunk {
-                            case .stdout(let buffer):
-                                onOutput(String(decoding: buffer.readableBytesView, as: UTF8.self))
-                            case .stderr(let buffer):
-                                onOutput(String(decoding: buffer.readableBytesView, as: UTF8.self))
+                            case .stdout(let buffer), .stderr(let buffer):
+                                onOutput(Array(buffer.readableBytesView))
                             }
                         }
                     } catch {
@@ -277,16 +293,19 @@ class RealSSHService: NSObject, SSHService {
                     }
                     writeTask.cancel()
                 }
+                self.ptyWriter = nil
                 onEnd(nil)
             } catch is CancellationError {
                 // Intentionally stopped via stopPTYSession() — not an error
+                self.ptyWriter = nil
                 onEnd(nil)
             } catch {
+                self.ptyWriter = nil
                 onEnd(error)
             }
         }
 
-        print("[RealSSHService] PTY session started")
+        print("[RealSSHService] PTY session started (\(cols)x\(rows))")
     }
 
     /// Sends raw text input to the active PTY stdin (e.g. "ls\n" or "\u{03}" for Ctrl+C).
@@ -294,19 +313,27 @@ class RealSSHService: NSObject, SSHService {
         ptyInputContinuation?.yield(ByteBuffer(string: text))
     }
 
-    /// Resizes the PTY window. Call when the terminal view dimensions change.
+    /// Sends raw bytes to the active PTY stdin. Used for keystrokes coming from
+    /// the SwiftTerm terminal view (its delegate hands us ArraySlice<UInt8>).
+    func sendPTYInputBytes(_ bytes: ArraySlice<UInt8>) {
+        ptyInputContinuation?.yield(ByteBuffer(bytes: bytes))
+    }
+
+    /// Resizes the PTY window (sends SIGWINCH) so remote apps redraw to fit.
     func resizePTY(cols: Int, rows: Int) {
-        // Resize is sent via TTYStdinWriter.changeSize inside an active session.
-        // Without storing a reference to TTYStdinWriter this is not directly callable;
-        // the session must be restarted with new dimensions for a resize to take effect.
-        // TODO: Store TTYStdinWriter reference to support live resize.
-        print("[RealSSHService] resizePTY(\(cols), \(rows)) — live resize not yet implemented")
+        pendingResize = (cols, rows)
+        guard let writer = ptyWriter else { return }
+        Task {
+            try? await writer.changeSize(cols: cols, rows: rows, pixelWidth: 0, pixelHeight: 0)
+        }
     }
 
     /// Stops the PTY session and cleans up state.
     func stopPTYSession() {
         ptyInputContinuation?.finish()
         ptyInputContinuation = nil
+        ptyWriter = nil
+        pendingResize = nil
         ptyTask?.cancel()
         ptyTask = nil
         print("[RealSSHService] PTY session stopped")
