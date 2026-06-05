@@ -40,6 +40,10 @@ struct TerminalView: View {
     // safeAreaInset on UIViewRepresentable is unreliable; we measure directly.
     @State private var keyboardPadding: CGFloat = 0
 
+    // Snippets
+    @StateObject private var snippetManager = SnippetManager()
+    @State private var showSnippets = false
+
     // SSH Service
     @State private var sshService: SSHService
 
@@ -271,13 +275,17 @@ struct TerminalView: View {
             }
 
             HStack(spacing: 6) {
-                actionButton("History", "clock.arrow.circlepath") { showHistory = true }
-                actionButton("Paste", "doc.on.clipboard") { pasteFromClipboard() }
+                actionButton("Snippets", "bolt.fill") { showSnippets = true }
+                actionButton("History",  "clock.arrow.circlepath") { showHistory = true }
+                actionButton("Paste",    "doc.on.clipboard") { pasteFromClipboard() }
                 if sshService is RealSSHService {
-                    actionButton("Clear", "trash") { clearPTYScreen() }
-                        .disabled(!isPTYSessionActive)
-                    actionButton("Copy", "doc.on.doc") { copyPTYInput() }
-                        .disabled(commandInput.isEmpty)
+                    actionButton("Clear", "trash") {
+                        clearPTYScreen()
+                        ptyController.clearBuffer()
+                    }
+                    .disabled(!isPTYSessionActive)
+                    actionButton("Copy", "doc.on.doc") { copyPTYOutput() }
+                        .disabled(!isPTYSessionActive || ptyController.copyableText.isEmpty)
                 } else {
                     actionButton("Clear", "trash") { mockOutput.removeAll() }
                         .disabled(mockOutput.isEmpty)
@@ -301,6 +309,11 @@ struct TerminalView: View {
                         Button("Close") { showHistory = false }
                     }
                 }
+            }
+        }
+        .sheet(isPresented: $showSnippets) {
+            SnippetsView(manager: snippetManager) { command in
+                commandInput = command
             }
         }
     }
@@ -342,6 +355,7 @@ struct TerminalView: View {
         isPTYSessionActive = false
         connectionState = .disconnected
         mockOutput.removeAll()
+        ptyController.clearBuffer()
     }
 
     // MARK: - PTY
@@ -415,10 +429,11 @@ struct TerminalView: View {
         (sshService as? RealSSHService)?.sendPTYInput("clear\n")
     }
 
-    /// Copies the current input-field text to the clipboard.
-    private func copyPTYInput() {
-        guard !commandInput.isEmpty else { return }
-        UIPasteboard.general.string = commandInput
+    /// Copies the rolling PTY output buffer (ANSI-stripped) to the clipboard.
+    private func copyPTYOutput() {
+        let text = ptyController.copyableText
+        guard !text.isEmpty else { return }
+        UIPasteboard.general.string = text
     }
 
     /// Copies all mock text-output lines to the clipboard.

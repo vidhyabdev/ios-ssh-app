@@ -14,19 +14,62 @@ import SwiftTerm
 /// Bridges PTY output bytes from the SwiftUI layer into the live SwiftTerm
 /// terminal instance. Holds only a weak reference so it never keeps the UIView
 /// alive past its lifetime.
+///
+/// Also maintains a rolling plain-text copy buffer (ANSI stripped) so the user
+/// can copy recent terminal output to the clipboard.
 final class PTYTerminalController: @unchecked Sendable {
     weak var terminalView: SwiftTerm.TerminalView?
+
+    // MARK: - Copy buffer
+
+    private var _copyBuffer = ""
+    private let copyBufferMax = 60_000   // ~60 KB rolling window
+
+    // Strips the most common ANSI / VT escape sequences, leaving plain text.
+    private static let ansiRegex: NSRegularExpression = {
+        // Covers: CSI sequences (colors, cursor), OSC, SS2/SS3, charset designations
+        let pattern = "\\x1B(?:[@-Z\\\\-_]|\\[[0-?]*[ -/]*[@-~]|\\][^\\x07\\x1B]*(?:\\x07|\\x1B\\\\))"
+        return try! NSRegularExpression(pattern: pattern)
+    }()
+
+    private func stripANSI(_ raw: String) -> String {
+        let ns = raw as NSString
+        return Self.ansiRegex.stringByReplacingMatches(
+            in: raw, range: NSRange(location: 0, length: ns.length), withTemplate: ""
+        )
+        .replacingOccurrences(of: "\r", with: "")   // strip lone CR
+    }
 
     /// Feed raw PTY bytes into the emulator. Safe to call from any thread.
     func feed(_ bytes: [UInt8]) {
         if Thread.isMainThread {
             terminalView?.feed(byteArray: bytes[...])
+            appendToBuffer(bytes)
         } else {
-            DispatchQueue.main.async { [weak terminalView] in
-                terminalView?.feed(byteArray: bytes[...])
+            DispatchQueue.main.async { [weak self] in
+                guard let self else { return }
+                self.terminalView?.feed(byteArray: bytes[...])
+                self.appendToBuffer(bytes)
             }
         }
     }
+
+    private func appendToBuffer(_ bytes: [UInt8]) {
+        guard let raw = String(bytes: bytes, encoding: .utf8) else { return }
+        let stripped = stripANSI(raw)
+        _copyBuffer += stripped
+        if _copyBuffer.count > copyBufferMax {
+            _copyBuffer = String(_copyBuffer.suffix(copyBufferMax))
+        }
+    }
+
+    /// The accumulated plain-text output, suitable for pasting into a text editor.
+    var copyableText: String { _copyBuffer }
+
+    /// Wipe the copy buffer (e.g. when the user taps Clear).
+    func clearBuffer() { _copyBuffer = "" }
+
+    // MARK: - Size
 
     /// The terminal's current grid size (cols, rows), if a terminal exists.
     @MainActor
