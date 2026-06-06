@@ -107,16 +107,14 @@ class RealSSHService: NSObject, SSHService {
             // TODO: Show trust UI when Citadel supports async validators
         }
         
-        // CRITICAL: Use host.hostname only, do NOT include port in hostname
-        // Citadel SSHClient uses default SSH port (22) if not specified
-        print("[RealSSHService] Connection target: \(host.hostname)")
+        // CRITICAL: host.hostname must be ONLY the IP/domain — never "host:port".
+        // Pass port: host.port explicitly so Citadel uses the stored value, not its
+        // hardcoded default. This has burned us before (5/30/2026 regression).
+        print("[RealSSHService] Connection target: \(host.hostname):\(host.port)")
 
-        // CRITICAL: This exact pattern works with Citadel library
-        // - host: hostname (port handled by Citadel default)
-        // - authenticationMethod: password-based
-        // - hostKeyValidator: accept anything (for simplicity)
         let settings = SSHClientSettings(
             host: host.hostname,
+            port: host.port,
             authenticationMethod: { .passwordBased(username: host.username, password: password) },
             hostKeyValidator: .acceptAnything()
         )
