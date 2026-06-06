@@ -133,7 +133,7 @@ class RealSSHService: NSObject, SSHService {
             // This handles transient NIO channel errors caused by Tailscale (or any VPN)
             // still establishing the peer path when the first connect attempt fires.
             // Non-network errors (auth failure, etc.) propagate immediately without retrying.
-            client = try await connectWithRetry(settings: settings)
+            client = try await connectWithRetry(settings: settings, retryDelay: 2.0)
             isConnected = true
             print("[RealSSHService] Connection successful!")
             
@@ -345,64 +345,32 @@ class RealSSHService: NSObject, SSHService {
 
     // MARK: - Helpers
 
-    /// Returns true for NIO / network-level errors that are worth retrying
-    /// (e.g. Tailscale peer path not yet established).
-    /// Auth failures and other Citadel-level errors are NOT retriable.
-    private func isRetriableNetworkError(_ error: Error) -> Bool {
-        let nsError = error as NSError
-        return nsError.domain == "NIOCore.ChannelError"
-            || nsError.domain == "NIOPosix.NIOConnectionError"
-            || nsError.domain == "NIOCore.NIOConnectionError"
-    }
-
-    /// Attempts to connect up to `maxAttempts` times, waiting `retryDelay` seconds
-    /// between each try. Only network-level (NIO) errors are retried; auth errors
-    /// propagate immediately so the user isn't locked out.
+    /// Retries `SSHClient.connect` up to 3 times with a 2-second pause between
+    /// attempts. Only NIO-level channel errors are retried (e.g. Tailscale peer
+    /// path not yet established). Auth failures propagate immediately.
     private func connectWithRetry(
         settings: SSHClientSettings,
         maxAttempts: Int = 3,
-        retryDelay: Double = 2.0,
-        timeoutPerAttempt: Double = 30.0
+        retryDelay: Double = 2.0
     ) async throws -> SSHClient {
         var lastError: Error = SSHError.connectionFailed
         for attempt in 1...maxAttempts {
             do {
-                return try await withConnectTimeout(seconds: timeoutPerAttempt) {
-                    try await SSHClient.connect(to: settings)
-                }
-            } catch SSHError.timeout {
-                throw SSHError.timeout          // timeout already waited 30s, don't retry
+                return try await SSHClient.connect(to: settings)
             } catch {
                 lastError = error
-                if attempt < maxAttempts && isRetriableNetworkError(error) {
+                let ns = error as NSError
+                let isNetworkError = ns.domain == "NIOCore.ChannelError"
+                    || ns.domain == "NIOPosix.NIOConnectionError"
+                    || ns.domain == "NIOCore.NIOConnectionError"
+                if attempt < maxAttempts && isNetworkError {
                     print("[RealSSHService] Attempt \(attempt) failed (\(error.localizedDescription)), retrying in \(Int(retryDelay))s…")
                     try await Task.sleep(nanoseconds: UInt64(retryDelay * 1_000_000_000))
                 } else {
-                    break                       // non-retriable or final attempt
+                    break
                 }
             }
         }
         throw lastError
-    }
-
-    // Thin @unchecked Sendable wrapper so withThrowingTaskGroup can carry
-    // SSHClient (which Citadel doesn't yet annotate as Sendable) across tasks.
-    private struct SendableBox<T>: @unchecked Sendable { let value: T }
-
-    /// Races `operation` against a wall-clock timeout.
-    /// Throws `SSHError.timeout` if the deadline is reached first.
-    private func withConnectTimeout<T>(
-        seconds: Double,
-        operation: @Sendable @escaping () async throws -> T
-    ) async throws -> T {
-        try await withThrowingTaskGroup(of: SendableBox<T>.self) { group in
-            group.addTask { SendableBox(value: try await operation()) }
-            group.addTask {
-                try await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
-                throw SSHError.timeout
-            }
-            defer { group.cancelAll() }
-            return try await group.next()!.value
-        }
     }
 }
