@@ -1,8 +1,8 @@
 import Foundation
+import Network
 @preconcurrency import Citadel
 import NIOCore
 import NIOPosix
-import NIOTransportServices
 import NIOSSH
 
 /// Real implementation of SSHService that executes commands through actual SSH
@@ -60,12 +60,8 @@ class RealSSHService: NSObject, SSHService {
     private var client: SSHClient? = nil
     private let keychainService = KeychainService.shared
 
-    // NIOTSEventLoopGroup uses Apple's Network.framework (NWConnection) under the
-    // hood instead of BSD sockets + kqueue. Network.framework is VPN-aware and
-    // properly routes traffic through Tailscale (and any other iOS VPN).
-    // NIOPosix's MultiThreadedEventLoopGroup uses raw BSD sockets that can fail
-    // with connectPending when a VPN intercepts the socket at the kernel level.
-    private let eventLoopGroup = NIOTSEventLoopGroup(loopCount: 1)
+    // Dedicated NIOPosix group — avoids any stale state in the singleton.
+    private let eventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: 1)
 
     // PTY interactive session state
     // These are only accessed from the main thread (via TerminalView actions) or inside the ptyTask.
@@ -116,32 +112,29 @@ class RealSSHService: NSObject, SSHService {
             // TODO: Show trust UI when Citadel supports async validators
         }
         
-        // Build SSH settings — auth method and host-key validation only.
-        // TCP connection is opened separately via NIOTSConnectionBootstrap so
-        // that Network.framework (not NIOPosix/ClientBootstrap) handles the
-        // socket, which is required for correct routing through iOS VPNs.
-        let settings = SSHClientSettings(
+        var settings = SSHClientSettings(
             host: host.hostname,
             authenticationMethod: { .passwordBased(username: host.username, password: password) },
             hostKeyValidator: .acceptAnything()
         )
+        settings.group = eventLoopGroup
+        settings.connectTimeout = .seconds(60)
 
         print("[RealSSHService] Connection target: \(host.hostname):\(host.port)")
 
         do {
-            // Step 1 — open TCP connection via Network.framework.
-            // NIOTSConnectionBootstrap wraps NWConnection which is VPN-aware;
-            // ClientBootstrap (NIOPosix) is not and fails with connectPending
-            // when a Tailscale/NEPacketTunnelProvider VPN is active.
-            print("[RealSSHService] Opening TCP channel via NIOTransportServices…")
-            let channel = try await NIOTSConnectionBootstrap(group: eventLoopGroup)
-                .connectTimeout(.seconds(60))
-                .connect(host: host.hostname, port: host.port)
-                .get()
+            // Pre-flight: open and immediately close an NWConnection (Network.framework).
+            // This forces iOS to establish the Tailscale WireGuard peer path before
+            // Citadel's ClientBootstrap (NIOPosix) attempts its connection.
+            // WireGuard sessions stay alive for 30+ seconds, so the path remains
+            // open by the time Citadel connects a millisecond later.
+            // NIOSSH requires NIOPosix internally (syncOperations on SelectableEventLoop),
+            // so we cannot use NIOTransportServices for the SSH layer itself.
+            print("[RealSSHService] Pre-flight: establishing Tailscale path via Network.framework…")
+            try await warmUpNetworkPath(host: host.hostname, port: host.port)
+            print("[RealSSHService] Path ready. Connecting via Citadel/NIOPosix…")
 
-            // Step 2 — layer SSH on top of the connected channel.
-            print("[RealSSHService] TCP connected; starting SSH handshake…")
-            client = try await SSHClient.connect(on: channel, settings: settings)
+            client = try await SSHClient.connect(to: settings)
             isConnected = true
             print("[RealSSHService] Connection successful!")
         } catch let error as NSError {
@@ -346,5 +339,39 @@ class RealSSHService: NSObject, SSHService {
         ptyTask?.cancel()
         ptyTask = nil
         print("[RealSSHService] PTY session stopped")
+    }
+
+    // MARK: - Network path warm-up
+
+    /// Opens an NWConnection (Network.framework / VPN-aware) to the target host
+    /// and cancels it as soon as the path is ready. This forces the OS to
+    /// establish the Tailscale WireGuard peer path so the subsequent NIOPosix
+    /// ClientBootstrap connect can succeed immediately.
+    private func warmUpNetworkPath(host: String, port: Int) async throws {
+        guard let nwPort = NWEndpoint.Port(rawValue: UInt16(port)) else { return }
+        let endpoint = NWEndpoint.hostPort(host: NWEndpoint.Host(host), port: nwPort)
+        let connection = NWConnection(to: endpoint, using: .tcp)
+
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            let box = NIOLockedValueBox(false)
+            connection.stateUpdateHandler = { state in
+                let alreadyResumed = box.withLockedValue { v -> Bool in
+                    let old = v; v = true; return old
+                }
+                guard !alreadyResumed else { return }
+                switch state {
+                case .ready:
+                    connection.cancel()
+                    continuation.resume()
+                case .failed(let error):
+                    continuation.resume(throwing: error)
+                case .cancelled:
+                    continuation.resume()
+                default:
+                    break
+                }
+            }
+            connection.start(queue: .global(qos: .userInitiated))
+        }
     }
 }
