@@ -118,22 +118,23 @@ class RealSSHService: NSObject, SSHService {
         // - hostKeyValidator: accept anything (for simplicity)
         // NOTE: Using .acceptAnything() because Citadel's hostKeyValidator is synchronous
         // and doesn't support async UI operations for trust-on-first-use.
-        let settings = SSHClientSettings(
+        var settings = SSHClientSettings(
             host: host.hostname,
             authenticationMethod: { .passwordBased(username: host.username, password: password) },
             hostKeyValidator: .acceptAnything()
         )
+        // Give Tailscale (and any other VPN) up to 60 s to establish the peer
+        // path. Citadel's NIO bootstrap holds the socket in EINPROGRESS for this
+        // long, so a slow network doesn't fail immediately the way a short timeout
+        // (or a retry loop that reuses the singleton EventLoopGroup) would.
+        settings.connectTimeout = .seconds(60)
         
         do {
             // CRITICAL: Use static SSHClient.connect() method
             // Do NOT use: client = SSHClient(); try await client?.connect(to: settings)
             // The static method pattern was verified working on 5/30/2026
             print("[RealSSHService] Calling SSHClient.connect(to: settings)...")
-            // Retry up to 3 times with 2-second back-off.
-            // This handles transient NIO channel errors caused by Tailscale (or any VPN)
-            // still establishing the peer path when the first connect attempt fires.
-            // Non-network errors (auth failure, etc.) propagate immediately without retrying.
-            client = try await connectWithRetry(settings: settings, retryDelay: 2.0)
+            client = try await SSHClient.connect(to: settings)
             isConnected = true
             print("[RealSSHService] Connection successful!")
             
@@ -341,36 +342,5 @@ class RealSSHService: NSObject, SSHService {
         ptyTask?.cancel()
         ptyTask = nil
         print("[RealSSHService] PTY session stopped")
-    }
-
-    // MARK: - Helpers
-
-    /// Retries `SSHClient.connect` up to 3 times with a 2-second pause between
-    /// attempts. Only NIO-level channel errors are retried (e.g. Tailscale peer
-    /// path not yet established). Auth failures propagate immediately.
-    private func connectWithRetry(
-        settings: SSHClientSettings,
-        maxAttempts: Int = 3,
-        retryDelay: Double = 2.0
-    ) async throws -> SSHClient {
-        var lastError: Error = SSHError.connectionFailed
-        for attempt in 1...maxAttempts {
-            do {
-                return try await SSHClient.connect(to: settings)
-            } catch {
-                lastError = error
-                let ns = error as NSError
-                let isNetworkError = ns.domain == "NIOCore.ChannelError"
-                    || ns.domain == "NIOPosix.NIOConnectionError"
-                    || ns.domain == "NIOCore.NIOConnectionError"
-                if attempt < maxAttempts && isNetworkError {
-                    print("[RealSSHService] Attempt \(attempt) failed (\(error.localizedDescription)), retrying in \(Int(retryDelay))s…")
-                    try await Task.sleep(nanoseconds: UInt64(retryDelay * 1_000_000_000))
-                } else {
-                    break
-                }
-            }
-        }
-        throw lastError
     }
 }
