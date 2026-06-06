@@ -353,20 +353,17 @@ class RealSSHService: NSObject, SSHService {
         let connection = NWConnection(to: endpoint, using: .tcp)
 
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-            let box = NIOLockedValueBox(false)
+            // Nil the handler immediately after first event so cancel()
+            // triggering .cancelled doesn't resume the continuation a second time.
             connection.stateUpdateHandler = { state in
-                let alreadyResumed = box.withLockedValue { v -> Bool in
-                    let old = v; v = true; return old
-                }
-                guard !alreadyResumed else { return }
                 switch state {
                 case .ready:
+                    connection.stateUpdateHandler = nil
                     connection.cancel()
                     continuation.resume()
                 case .failed(let error):
+                    connection.stateUpdateHandler = nil
                     continuation.resume(throwing: error)
-                case .cancelled:
-                    continuation.resume()
                 default:
                     break
                 }
