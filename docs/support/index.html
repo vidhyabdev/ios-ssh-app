@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SSHOpen — Support</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #0a0a0a;
+      color: #e0e0e0;
+      min-height: 100vh;
+    }
+
+    header {
+      background: #111;
+      border-bottom: 1px solid #222;
+      padding: 24px 32px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .logo {
+      width: 52px;
+      height: 52px;
+      background: #000;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 26px;
+      border: 1px solid #2a2a2a;
+    }
+
+    header h1 {
+      font-size: 22px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    header p {
+      font-size: 13px;
+      color: #666;
+      margin-top: 2px;
+    }
+
+    main {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 48px 24px;
+    }
+
+    h2 {
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #39d353;
+      margin-bottom: 16px;
+      margin-top: 48px;
+    }
+
+    h2:first-child { margin-top: 0; }
+
+    h3 {
+      font-size: 17px;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 8px;
+      margin-top: 28px;
+    }
+
+    p, li {
+      font-size: 15px;
+      line-height: 1.7;
+      color: #aaa;
+    }
+
+    ul {
+      padding-left: 20px;
+    }
+
+    li { margin-bottom: 6px; }
+
+    .card {
+      background: #111;
+      border: 1px solid #222;
+      border-radius: 12px;
+      padding: 24px;
+      margin-top: 12px;
+    }
+
+    .faq-item {
+      border-bottom: 1px solid #1e1e1e;
+      padding: 20px 0;
+    }
+
+    .faq-item:last-child { border-bottom: none; padding-bottom: 0; }
+    .faq-item:first-child { padding-top: 0; }
+
+    code {
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      border-radius: 4px;
+      padding: 2px 7px;
+      font-family: "SF Mono", Monaco, monospace;
+      font-size: 13px;
+      color: #39d353;
+    }
+
+    a {
+      color: #39d353;
+      text-decoration: none;
+    }
+
+    a:hover { text-decoration: underline; }
+
+    .contact-btn {
+      display: inline-block;
+      margin-top: 16px;
+      background: #39d353;
+      color: #000;
+      font-weight: 600;
+      font-size: 15px;
+      padding: 12px 24px;
+      border-radius: 8px;
+      text-decoration: none;
+    }
+
+    .contact-btn:hover {
+      background: #2ebd47;
+      text-decoration: none;
+    }
+
+    footer {
+      text-align: center;
+      padding: 40px 24px;
+      font-size: 13px;
+      color: #444;
+      border-top: 1px solid #1a1a1a;
+      margin-top: 64px;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">⚡</div>
+  <div>
+    <h1>SSHOpen</h1>
+    <p>SSH Client for iPhone</p>
+  </div>
+</header>
+
+<main>
+
+  <h2>Getting Started</h2>
+  <div class="card">
+    <h3>Adding a Host</h3>
+    <p>Tap the <strong>+</strong> button on the host list screen. Enter your hostname or IP address, port (default 22), and username. Your password is stored securely in the iOS Keychain.</p>
+
+    <h3>Connecting</h3>
+    <p>Tap a host to connect. On first connection, you'll be asked to verify the server's SSH fingerprint. Accept to save it — SSHOpen will verify it on all future connections.</p>
+
+    <h3>Using Snippets</h3>
+    <p>Tap <strong>Snippets</strong> in the toolbar to open your saved commands. Tap any snippet to run it instantly. Use the <strong>+</strong> button to add new ones.</p>
+
+    <h3>Ctrl & Special Keys</h3>
+    <p>The custom keyboard row above the system keyboard provides <code>esc</code>, <code>ctrl</code>, <code>tab</code>, arrow keys, and function keys. Tap <code>ctrl</code> then a letter to send Ctrl combinations (e.g. <code>ctrl+c</code> to interrupt a process).</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="card">
+    <div class="faq-item">
+      <h3>Connection fails immediately</h3>
+      <p>Check that your SSH server is running and reachable. If connecting over a VPN (e.g. Tailscale), ensure the VPN is active before tapping Connect. Verify the hostname and port are correct.</p>
+    </div>
+    <div class="faq-item">
+      <h3>Fingerprint mismatch warning</h3>
+      <p>This means the server's SSH key has changed since your last connection. If you recently reinstalled your OS or regenerated SSH keys, clear the saved fingerprint in Settings and reconnect to re-verify.</p>
+    </div>
+    <div class="faq-item">
+      <h3>Interactive apps (vim, htop, tmux) don't display correctly</h3>
+      <p>Make sure your <code>TERM</code> environment variable is set to <code>xterm-256color</code> on the server. You can set this in your <code>~/.bashrc</code> or <code>~/.zshrc</code>: <code>export TERM=xterm-256color</code></p>
+    </div>
+    <div class="faq-item">
+      <h3>Where is my password stored?</h3>
+      <p>All passwords are stored in the iOS Keychain — the same secure storage used by Safari and other system apps. They are never transmitted anywhere other than your SSH server during authentication.</p>
+    </div>
+    <div class="faq-item">
+      <h3>Can I use SSH keys instead of a password?</h3>
+      <p>SSH key authentication is planned for a future release.</p>
+    </div>
+  </div>
+
+  <h2>Contact</h2>
+  <div class="card">
+    <p>Have a bug to report or a feature request? Open an issue on GitHub or send an email — responses typically within 48 hours.</p>
+    <a class="contact-btn" href="https://github.com/vidhyabdev/ios-ssh-app/issues">Open an Issue on GitHub</a>
+  </div>
+
+  <h2>Privacy</h2>
+  <div class="card">
+    <p>SSHOpen does not collect, transmit, or store any personal data. All connection credentials are stored locally in the iOS Keychain. No analytics, no tracking, no third-party SDKs.</p>
+  </div>
+
+</main>
+
+<footer>
+  © 2026 Vidhya Balasubramaniyan · <a href="https://github.com/vidhyabdev/ios-ssh-app">GitHub</a>
+</footer>
+
+</body>
+</html>
