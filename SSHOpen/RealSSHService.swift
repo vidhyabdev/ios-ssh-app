@@ -58,6 +58,11 @@ class RealSSHService: NSObject, SSHService {
     private var client: SSHClient? = nil
     private let keychainService = KeychainService.shared
 
+    // Dedicated event loop group — avoids stale state in the process-wide
+    // MultiThreadedEventLoopGroup.singleton that can cause connectPending errors
+    // on iOS when a VPN (e.g. Tailscale) is active.
+    private let eventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+
     // PTY interactive session state
     // These are only accessed from the main thread (via TerminalView actions) or inside the ptyTask.
     private var ptyTask: Task<Void, Never>?
@@ -123,10 +128,7 @@ class RealSSHService: NSObject, SSHService {
             authenticationMethod: { .passwordBased(username: host.username, password: password) },
             hostKeyValidator: .acceptAnything()
         )
-        // Give Tailscale (and any other VPN) up to 60 s to establish the peer
-        // path. Citadel's NIO bootstrap holds the socket in EINPROGRESS for this
-        // long, so a slow network doesn't fail immediately the way a short timeout
-        // (or a retry loop that reuses the singleton EventLoopGroup) would.
+        settings.group = eventLoopGroup
         settings.connectTimeout = .seconds(60)
         
         do {
