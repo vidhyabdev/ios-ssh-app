@@ -1,6 +1,7 @@
 import Foundation
 @preconcurrency import Citadel
 import NIOCore
+import NIOPosix
 import NIOSSH
 
 /// Real implementation of SSHService that executes commands through actual SSH
