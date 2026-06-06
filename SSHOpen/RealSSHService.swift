@@ -1,8 +1,6 @@
 import Foundation
-import Network
-@preconcurrency import Citadel
+import Citadel
 import NIOCore
-import NIOPosix
 import NIOSSH
 
 /// Real implementation of SSHService that executes commands through actual SSH
@@ -60,9 +58,6 @@ class RealSSHService: NSObject, SSHService {
     private var client: SSHClient? = nil
     private let keychainService = KeychainService.shared
 
-    // Dedicated NIOPosix group — avoids any stale state in the singleton.
-    private let eventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: 1)
-
     // PTY interactive session state
     // These are only accessed from the main thread (via TerminalView actions) or inside the ptyTask.
     private var ptyTask: Task<Void, Never>?
@@ -112,28 +107,25 @@ class RealSSHService: NSObject, SSHService {
             // TODO: Show trust UI when Citadel supports async validators
         }
         
-        var settings = SSHClientSettings(
+        // CRITICAL: Use host.hostname only, do NOT include port in hostname
+        // Citadel SSHClient uses default SSH port (22) if not specified
+        print("[RealSSHService] Connection target: \(host.hostname)")
+
+        // CRITICAL: This exact pattern works with Citadel library
+        // - host: hostname (port handled by Citadel default)
+        // - authenticationMethod: password-based
+        // - hostKeyValidator: accept anything (for simplicity)
+        let settings = SSHClientSettings(
             host: host.hostname,
             authenticationMethod: { .passwordBased(username: host.username, password: password) },
             hostKeyValidator: .acceptAnything()
         )
-        settings.group = eventLoopGroup
-        settings.connectTimeout = .seconds(60)
-
-        print("[RealSSHService] Connection target: \(host.hostname):\(host.port)")
 
         do {
-            // Pre-flight: open and immediately close an NWConnection (Network.framework).
-            // This forces iOS to establish the Tailscale WireGuard peer path before
-            // Citadel's ClientBootstrap (NIOPosix) attempts its connection.
-            // WireGuard sessions stay alive for 30+ seconds, so the path remains
-            // open by the time Citadel connects a millisecond later.
-            // NIOSSH requires NIOPosix internally (syncOperations on SelectableEventLoop),
-            // so we cannot use NIOTransportServices for the SSH layer itself.
-            print("[RealSSHService] Pre-flight: establishing Tailscale path via Network.framework…")
-            try await warmUpNetworkPath(host: host.hostname, port: host.port)
-            print("[RealSSHService] Path ready. Connecting via Citadel/NIOPosix…")
-
+            // CRITICAL: Use static SSHClient.connect() method
+            // Do NOT use: client = SSHClient(); try await client?.connect(to: settings)
+            // The static method pattern was verified working on 5/30/2026
+            print("[RealSSHService] Calling SSHClient.connect(to: settings)...")
             client = try await SSHClient.connect(to: settings)
             isConnected = true
             print("[RealSSHService] Connection successful!")
@@ -341,34 +333,4 @@ class RealSSHService: NSObject, SSHService {
         print("[RealSSHService] PTY session stopped")
     }
 
-    // MARK: - Network path warm-up
-
-    /// Opens an NWConnection (Network.framework / VPN-aware) to the target host
-    /// and cancels it as soon as the path is ready. This forces the OS to
-    /// establish the Tailscale WireGuard peer path so the subsequent NIOPosix
-    /// ClientBootstrap connect can succeed immediately.
-    private func warmUpNetworkPath(host: String, port: Int) async throws {
-        guard let nwPort = NWEndpoint.Port(rawValue: UInt16(port)) else { return }
-        let endpoint = NWEndpoint.hostPort(host: NWEndpoint.Host(host), port: nwPort)
-        let connection = NWConnection(to: endpoint, using: .tcp)
-
-        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-            // Nil the handler immediately after first event so cancel()
-            // triggering .cancelled doesn't resume the continuation a second time.
-            connection.stateUpdateHandler = { state in
-                switch state {
-                case .ready:
-                    connection.stateUpdateHandler = nil
-                    connection.cancel()
-                    continuation.resume()
-                case .failed(let error):
-                    connection.stateUpdateHandler = nil
-                    continuation.resume(throwing: error)
-                default:
-                    break
-                }
-            }
-            connection.start(queue: .global(qos: .userInitiated))
-        }
-    }
 }
