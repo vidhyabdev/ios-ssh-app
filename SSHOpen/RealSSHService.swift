@@ -2,6 +2,7 @@ import Foundation
 @preconcurrency import Citadel
 import NIOCore
 import NIOPosix
+import NIOTransportServices
 import NIOSSH
 
 /// Real implementation of SSHService that executes commands through actual SSH
@@ -59,10 +60,12 @@ class RealSSHService: NSObject, SSHService {
     private var client: SSHClient? = nil
     private let keychainService = KeychainService.shared
 
-    // Dedicated event loop group — avoids stale state in the process-wide
-    // MultiThreadedEventLoopGroup.singleton that can cause connectPending errors
-    // on iOS when a VPN (e.g. Tailscale) is active.
-    private let eventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+    // NIOTSEventLoopGroup uses Apple's Network.framework (NWConnection) under the
+    // hood instead of BSD sockets + kqueue. Network.framework is VPN-aware and
+    // properly routes traffic through Tailscale (and any other iOS VPN).
+    // NIOPosix's MultiThreadedEventLoopGroup uses raw BSD sockets that can fail
+    // with connectPending when a VPN intercepts the socket at the kernel level.
+    private let eventLoopGroup = NIOTSEventLoopGroup(loopCount: 1)
 
     // PTY interactive session state
     // These are only accessed from the main thread (via TerminalView actions) or inside the ptyTask.

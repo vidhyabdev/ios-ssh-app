@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		73CB8FFC2FC783FD00E16A30 /* Citadel in Frameworks */ = {isa = PBXBuildFile; productRef = 73CB8FFB2FC783FD00E16A30 /* Citadel */; };
 		73CB90012FC7840000E16A30 /* SwiftTerm in Frameworks */ = {isa = PBXBuildFile; productRef = 73CB90002FC7840000E16A30 /* SwiftTerm */; };
+		79308FF717E74521AED2D5C2 /* NIOTransportServices in Frameworks */ = {isa = PBXBuildFile; productRef = C1338F67245746A589AEBFA0 /* NIOTransportServices */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -30,6 +31,7 @@
 			files = (
 				73CB8FFC2FC783FD00E16A30 /* Citadel in Frameworks */,
 				73CB90012FC7840000E16A30 /* SwiftTerm in Frameworks */,
+				79308FF717E74521AED2D5C2 /* NIOTransportServices in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -74,6 +76,7 @@
 			packageProductDependencies = (
 				73CB8FFB2FC783FD00E16A30 /* Citadel */,
 				73CB90002FC7840000E16A30 /* SwiftTerm */,
+				C1338F67245746A589AEBFA0 /* NIOTransportServices */,
 			);
 			productName = SSHOpen;
 			productReference = 73961AAB2FC7694800B0363E /* SSHOpen.app */;
@@ -106,6 +109,7 @@
 			packageReferences = (
 				73CB8FFA2FC783FD00E16A30 /* XCRemoteSwiftPackageReference "Citadel" */,
 				73CB8FFF2FC7840000E16A30 /* XCRemoteSwiftPackageReference "SwiftTerm" */,
+				4EF4341C67ED4155B4A56EAD /* XCRemoteSwiftPackageReference "swift-nio-transport-services" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 73961AAC2FC7694800B0363E /* Products */;
@@ -367,6 +371,14 @@
 				minimumVersion = 1.2.0;
 			};
 		};
+		4EF4341C67ED4155B4A56EAD /* XCRemoteSwiftPackageReference "swift-nio-transport-services" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/apple/swift-nio-transport-services.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.22.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -379,6 +391,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 73CB8FFF2FC7840000E16A30 /* XCRemoteSwiftPackageReference "SwiftTerm" */;
 			productName = SwiftTerm;
+		};
+		C1338F67245746A589AEBFA0 /* NIOTransportServices */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 4EF4341C67ED4155B4A56EAD /* XCRemoteSwiftPackageReference "swift-nio-transport-services" */;
+			productName = NIOTransportServices;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
