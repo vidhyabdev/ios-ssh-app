@@ -142,7 +142,7 @@ enum SSHError: Error, LocalizedError {
         case .hostUnreachable:
             return "Host is unreachable"
         case .timeout:
-            return "Connection timed out"
+            return "Connection timed out after 30 seconds. Check your network and try again."
         case .sshHandshakeFailed:
             return "SSH handshake failed"
         case .commandExecutionFailed:

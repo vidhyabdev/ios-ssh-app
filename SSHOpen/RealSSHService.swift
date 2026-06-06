@@ -129,7 +129,12 @@ class RealSSHService: NSObject, SSHService {
             // Do NOT use: client = SSHClient(); try await client?.connect(to: settings)
             // The static method pattern was verified working on 5/30/2026
             print("[RealSSHService] Calling SSHClient.connect(to: settings)...")
-            client = try await SSHClient.connect(to: settings)
+            // Race the connect against a 30-second timeout so slow networks get a
+            // clear error rather than NIOCore.ChannelError when NIO's internal
+            // channel timeout fires first.
+            client = try await withConnectTimeout(seconds: 30) {
+                try await SSHClient.connect(to: settings)
+            }
             isConnected = true
             print("[RealSSHService] Connection successful!")
             
@@ -337,5 +342,25 @@ class RealSSHService: NSObject, SSHService {
         ptyTask?.cancel()
         ptyTask = nil
         print("[RealSSHService] PTY session stopped")
+    }
+
+    // MARK: - Helpers
+
+    /// Races `operation` against a wall-clock timeout.
+    /// Throws `SSHError.timeout` if the deadline is reached first.
+    private func withConnectTimeout<T: Sendable>(
+        seconds: Double,
+        operation: @Sendable @escaping () async throws -> T
+    ) async throws -> T {
+        try await withThrowingTaskGroup(of: T.self) { group in
+            group.addTask { try await operation() }
+            group.addTask {
+                try await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
+                throw SSHError.timeout
+            }
+            defer { group.cancelAll() }
+            // Returns first result or rethrows first error (connect failure or timeout).
+            return try await group.next()!
+        }
     }
 }
