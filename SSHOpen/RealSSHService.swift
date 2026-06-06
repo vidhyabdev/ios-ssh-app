@@ -116,36 +116,34 @@ class RealSSHService: NSObject, SSHService {
             // TODO: Show trust UI when Citadel supports async validators
         }
         
-        // Create SSHClientSettings with host and password authentication
-        // CRITICAL: Use host.hostname only, do NOT include port in hostname
-        // Citadel SSHClient uses default SSH port (22) if not specified
-        print("[RealSSHService] Connection target: \(host.hostname)")
-        
-        // CRITICAL: This exact pattern works with Citadel library
-        // - host: hostname (port handled by Citadel default)
-        // - authenticationMethod: password-based
-        // - hostKeyValidator: accept anything (for simplicity)
-        // NOTE: Using .acceptAnything() because Citadel's hostKeyValidator is synchronous
-        // and doesn't support async UI operations for trust-on-first-use.
-        var settings = SSHClientSettings(
+        // Build SSH settings — auth method and host-key validation only.
+        // TCP connection is opened separately via NIOTSConnectionBootstrap so
+        // that Network.framework (not NIOPosix/ClientBootstrap) handles the
+        // socket, which is required for correct routing through iOS VPNs.
+        let settings = SSHClientSettings(
             host: host.hostname,
             authenticationMethod: { .passwordBased(username: host.username, password: password) },
             hostKeyValidator: .acceptAnything()
         )
-        settings.group = eventLoopGroup
-        settings.connectTimeout = .seconds(60)
-        
+
+        print("[RealSSHService] Connection target: \(host.hostname):\(host.port)")
+
         do {
-            // CRITICAL: Use static SSHClient.connect() method
-            // Do NOT use: client = SSHClient(); try await client?.connect(to: settings)
-            // The static method pattern was verified working on 5/30/2026
-            print("[RealSSHService] Calling SSHClient.connect(to: settings)...")
-            client = try await SSHClient.connect(to: settings)
+            // Step 1 — open TCP connection via Network.framework.
+            // NIOTSConnectionBootstrap wraps NWConnection which is VPN-aware;
+            // ClientBootstrap (NIOPosix) is not and fails with connectPending
+            // when a Tailscale/NEPacketTunnelProvider VPN is active.
+            print("[RealSSHService] Opening TCP channel via NIOTransportServices…")
+            let channel = try await NIOTSConnectionBootstrap(group: eventLoopGroup)
+                .connectTimeout(.seconds(60))
+                .connect(host: host.hostname, port: host.port)
+                .get()
+
+            // Step 2 — layer SSH on top of the connected channel.
+            print("[RealSSHService] TCP connected; starting SSH handshake…")
+            client = try await SSHClient.connect(on: channel, settings: settings)
             isConnected = true
             print("[RealSSHService] Connection successful!")
-            
-            // Note: We cannot extract the host key after connection with Citadel
-            // The .acceptAnything() validator accepts any key without exposing it
         } catch let error as NSError {
             // Handle connection/authentication failure with detailed error info
             print("[RealSSHService] Connection failed with NSError")
