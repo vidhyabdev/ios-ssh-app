@@ -274,25 +274,27 @@ struct TerminalView: View {
                 }
             }
 
-            HStack(spacing: 6) {
-                actionButton("Snippets", "bolt.fill") { showSnippets = true }
-                actionButton("History",  "clock.arrow.circlepath") { showHistory = true }
-                actionButton("Paste",    "doc.on.clipboard") { pasteFromClipboard() }
-                if sshService is RealSSHService {
-                    actionButton("Clear", "trash") {
-                        clearPTYScreen()
-                        ptyController.clearBuffer()
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 6) {
+                    actionButton("Snippets", "bolt.fill") { showSnippets = true }
+                    actionButton("History",  "clock.arrow.circlepath") { showHistory = true }
+                    actionButton("Paste",    "doc.on.clipboard") { pasteFromClipboard() }
+                    if sshService is RealSSHService {
+                        actionButton("Clear", "trash") {
+                            clearPTYScreen()
+                            ptyController.clearBuffer()
+                        }
+                        .disabled(!isPTYSessionActive)
+                        actionButton("Copy", "doc.on.doc") { copyPTYOutput() }
+                            .disabled(!isPTYSessionActive || ptyController.copyableText.isEmpty)
+                    } else {
+                        actionButton("Clear", "trash") { mockOutput.removeAll() }
+                            .disabled(mockOutput.isEmpty)
+                        actionButton("Copy", "doc.on.doc") { copyMockOutput() }
+                            .disabled(mockOutput.isEmpty)
                     }
-                    .disabled(!isPTYSessionActive)
-                    actionButton("Copy", "doc.on.doc") { copyPTYOutput() }
-                        .disabled(!isPTYSessionActive || ptyController.copyableText.isEmpty)
-                } else {
-                    actionButton("Clear", "trash") { mockOutput.removeAll() }
-                        .disabled(mockOutput.isEmpty)
-                    actionButton("Copy", "doc.on.doc") { copyMockOutput() }
-                        .disabled(mockOutput.isEmpty)
                 }
-                Spacer(minLength: 0)
+                .padding(.horizontal, 2)
             }
         }
         .padding(.horizontal, 10)
